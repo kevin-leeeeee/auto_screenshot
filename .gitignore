@@ -1,0 +1,24 @@
+__pycache__/
+*.pyc
+dist/
+build/
+*.spec
+*.log
+preferences.json
+done_urls.json
+screenshots*/
+test/
+.idea/
+urls*.txt
+.venv/
+
+# Additional exclusions
+chrome_profile_copy/
+garbage/
+logs/
+bg_screenshots/
+screenshots_urls/
+0108_1.txt
+0111_test.txt
+test.txt
+main_playwright.py
