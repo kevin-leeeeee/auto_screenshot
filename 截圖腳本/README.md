@@ -40,6 +40,13 @@
 3. 執行打包：`.venv/Scripts/pyinstaller -y screenshot_tool.spec`
 4. 產出路徑：`dist/screenshot_tool/screenshot_tool.exe`
 
+### 🛡️ 安全性與隱私
+本程式為 100% 開源透明的 Python 腳本，**不含任何惡意代碼**。
+- **公開透明**：所有程式碼皆可被檢視，沒有被編譯隱藏的黑盒子。
+- **無背景連網**：除了呼叫瀏覽器打開指定網址外，絕無任何背景傳輸數據、竊取資料或連線至外部伺服器的行為。
+- **無危險指令**：未使用 `eval()` 或 `exec()` 等危險函數。
+- **隱私安全**：所有操作皆在您本機執行，截圖與紀錄檔僅存在於您的電腦中。
+
 ---
 
 <a name="english-version"></a>
@@ -77,3 +84,10 @@ Build as a standalone executable using PyInstaller:
 2. `.venv/Scripts/pip install -r requirements.txt`
 3. `.venv/Scripts/pyinstaller -y screenshot_tool.spec`
 4. Result: `dist/screenshot_tool/screenshot_tool.exe`
+
+### 🛡️ Security & Privacy
+This software is 100% open-source and transparent, containing **NO malicious code**.
+- **Transparent**: All code is visible and auditable; no hidden compiled binaries.
+- **No Background Networking**: No data transmission, spying, or external server connections. It only opens the browser to URLs you specify.
+- **Safe Execution**: No use of dangerous functions like `eval()` or `exec()`.
+- **Privacy Focused**: All operations run locally on your machine. Screenshots and logs stay on your computer.
