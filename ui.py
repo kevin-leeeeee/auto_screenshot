@@ -19,6 +19,7 @@ from config import (
     FINAL_COUNTDOWN_SECONDS,
     LOGIN_KEYWORDS,
     NOT_FOUND_KEYWORDS,
+    SKIP_DONE_DEFAULT,
     TEXT_CHECK_ENABLED_DEFAULT,
     PAGE_WAIT_RANGE,
     PREFS_FILE,
@@ -327,6 +328,7 @@ class _SettingsUI:
         self.page_min_var = tk.StringVar(value=str(PAGE_WAIT_RANGE[0]))
         self.page_max_var = tk.StringVar(value=str(PAGE_WAIT_RANGE[1]))
         self.final_var = tk.StringVar(value=str(FINAL_COUNTDOWN_SECONDS))
+        self.skip_done_var = tk.BooleanVar(value=SKIP_DONE_DEFAULT)
         self.record_output_var = tk.BooleanVar(value=RECORD_OUTPUT_DEFAULT)
         self.word_enabled_var = tk.BooleanVar(value=WORD_ENABLED_DEFAULT)
         self.text_check_enabled_var = tk.BooleanVar(value=TEXT_CHECK_ENABLED_DEFAULT)
@@ -378,6 +380,7 @@ class _SettingsUI:
         tk.Label(output_row, text="輸出資料夾").pack(side="left")
         tk.Entry(output_row, textvariable=self.output_var).pack(side="left", fill="x", expand=True, padx=8)
         tk.Button(output_row, text="瀏覽", command=self._choose_output).pack(side="left")
+        tk.Checkbutton(record_group, text="跳過已完成的網址 (Skip done)", variable=self.skip_done_var).pack(anchor="w", pady=(6, 0))
         tk.Checkbutton(record_group, text="記錄輸出檔案 (done_urls.json)", variable=self.record_output_var).pack(anchor="w")
         tk.Button(record_group, text="清除所有紀錄", command=self._clear_output_records).pack(anchor="w", pady=(6, 0))
         self.word_checkbox = tk.Checkbutton(
@@ -632,6 +635,8 @@ class _SettingsUI:
         if isinstance(prefs.get("batch_rest_range"), list) and len(prefs["batch_rest_range"]) == 2:
             self.rest_min_var.set(str(prefs["batch_rest_range"][0]))
             self.rest_max_var.set(str(prefs["batch_rest_range"][1]))
+        if "skip_done" in prefs:
+            self.skip_done_var.set(bool(prefs["skip_done"]))
 
     def update_defaults(self, default_urls_file: Path, default_output_dir: Path):
         if not self.urls_var.get().strip():
@@ -701,6 +706,7 @@ class _SettingsUI:
             page_min = self._parse_int("每頁等待(最小)", self.page_min_var)
             page_max = self._parse_int("每頁等待(最大)", self.page_max_var)
             final_countdown = self._parse_int("截圖倒數", self.final_var)
+            skip_done = self.skip_done_var.get()
             record_output = self.record_output_var.get()
             word_enabled = self.word_enabled_var.get()
             text_check_enabled = self.text_check_enabled_var.get()
@@ -754,6 +760,7 @@ class _SettingsUI:
             "output_dir": self.output_var.get().strip(),
             "page_wait_range": (page_min, page_max),
             "final_countdown": final_countdown,
+            "skip_done": skip_done,
             "record_output": record_output,
             "word_enabled": word_enabled,
             "text_check_enabled": text_check_enabled,
@@ -779,6 +786,7 @@ class _SettingsUI:
                 "output_manual": self.output_manual,
                 "page_wait_range": [self.page_min_var.get().strip(), self.page_max_var.get().strip()],
                 "final_countdown": self.final_var.get().strip(),
+                "skip_done": self.skip_done_var.get(),
                 "record_output": self.record_output_var.get(),
                 "word_enabled": self.word_enabled_var.get(),
                 # Store as both for backward compatibility or just new? Let's strictly use new key but load old

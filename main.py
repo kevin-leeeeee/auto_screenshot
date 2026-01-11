@@ -26,6 +26,7 @@ from config import (
     NOT_FOUND_KEYWORDS,
     TEXT_CHECK_ENABLED_DEFAULT,
     PAGE_WAIT_RANGE,
+    SKIP_DONE_DEFAULT,
     RECORD_OUTPUT_DEFAULT,
     SCROLL_CAPTURE_DEFAULT,
     SCROLL_CAPTURE_MULTIPLIER,
@@ -312,7 +313,7 @@ def run_capture(cfg: RunConfig) -> bool:
                 overlay.set_footer("已停止")
                 return True
 
-            if url in done:
+            if cfg.skip_done and url in done:
                 skipped_this_run += 1
                 continue
 
@@ -483,6 +484,7 @@ def main():
             cfg.output_dir = Path(ui_res["output_dir"]) if ui_res["output_dir"] else Path(default_output_dir_from_urls(cfg.urls_file))
             cfg.page_wait_range = ui_res["page_wait_range"]
             cfg.final_countdown = ui_res["final_countdown"]
+            cfg.skip_done = ui_res.get("skip_done", SKIP_DONE_DEFAULT)
             cfg.record_output = ui_res.get("record_output", RECORD_OUTPUT_DEFAULT)
             cfg.word_enabled = ui_res.get("word_enabled", WORD_ENABLED_DEFAULT)
             cfg.ocr_enabled = ui_res.get("text_check_enabled", TEXT_CHECK_ENABLED_DEFAULT) # Config expects text_check_enabled, let's fix this in next step or here?

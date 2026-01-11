@@ -26,7 +26,8 @@ WARM_UP_URL = "https://shopee.tw/"
 WARM_UP_WAIT_RANGE = (3, 5)
 
 # 其它
-DEDUP_URLS = True
+DEDUP_URLS = True # (This seems unused or I missed it? Ah, line 29)
+SKIP_DONE_DEFAULT = True # New default
 RECORD_OUTPUT_DEFAULT = True
 
 TEXT_CHECK_ENABLED_DEFAULT = False
@@ -89,6 +90,7 @@ class RunConfig:
     warmup_enabled: bool = WARM_UP_ENABLED
     page_wait_range: tuple[int, int] = PAGE_WAIT_RANGE
     final_countdown: int = FINAL_COUNTDOWN_SECONDS
+    skip_done: bool = SKIP_DONE_DEFAULT
     record_output: bool = RECORD_OUTPUT_DEFAULT
     word_enabled: bool = WORD_ENABLED_DEFAULT
     text_check_enabled: bool = TEXT_CHECK_ENABLED_DEFAULT
