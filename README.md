@@ -2,6 +2,16 @@
 
 這是一個整合多項工作自動化腳本的儲存庫，旨在透過 Python 腳本簡化日常重複性任務，提升工作效率。
 
+## 🚀 下載與執行 (Download & Run)
+
+如果您不需要修改程式碼，可以直接從 [GitHub Releases](https://github.com/kevin-leeeeee/auto_screenshot/releases) 下載編譯好的 `.exe` 執行檔：
+
+1.  前往 **[Releases 頁面](https://github.com/kevin-leeeeee/auto_screenshot/releases)**。
+2.  下載最新版本的 `screenshot_tool.exe` 或 `convert_excel.exe`。
+3.  **注意**：執行時若被 Windows Defender 攔截，請點選「其他資訊」並選擇「仍要執行」。
+
+---
+
 ## 📁 專案結構 (Project Structure)
 
 本儲存庫包含以下獨立的工具模組：
