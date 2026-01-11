@@ -392,7 +392,7 @@ class _SettingsUI:
         Tooltip(self.word_checkbox, "每次產生新檔案，存於輸出資料夾")
 
         # --- Check Text Group (Renamed from OCR) ---
-        ocr_group = tk.LabelFrame(self.root, text="文字檢查 (Ctrl+A)", padx=8, pady=6)
+        ocr_group = tk.LabelFrame(self.root, text="文字檢查 ", padx=8, pady=6)
         ocr_group.grid(row=3, column=0, columnspan=3, sticky="we", padx=12, pady=6)
         
         ocr_toggle_row = tk.Frame(ocr_group)
