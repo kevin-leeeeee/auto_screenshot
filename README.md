@@ -4,11 +4,16 @@
 
 ## 🚀 下載與執行 (Download & Run)
 
-如果您不需要修改程式碼，可以直接從 [GitHub Releases](https://github.com/kevin-leeeeee/auto_screenshot/releases) 下載編譯好的 `.exe` 執行檔：
+您可以從 **[GitHub Releases](https://github.com/kevin-leeeeee/auto_screenshot/releases)** 下載最新版本。我們提供兩種格式：
 
-1.  前往 **[Releases 頁面](https://github.com/kevin-leeeeee/auto_screenshot/releases)**。
-2.  下載最新版本的 `screenshot_tool.exe` 或 `convert_excel.exe`。
-3.  **注意**：執行時若被 Windows Defender 攔截，請點選「其他資訊」並選擇「仍要執行」。
+| 工具名稱 | 獨立執行檔 (.exe) | 壓縮包 (.zip 版) | 說明 |
+| :--- | :--- | :--- | :--- |
+| **截圖工具** | ~21 MB | ~21 MB | 自動截圖、分析與匯出 Word |
+| **Excel 轉換** | ~18 MB | ~18 MB | 案件清單分群與格式化 |
+
+*   **獨立執行檔 (.exe)**: 單一檔案，下載即用，最為方便。
+*   **壓縮包 (.zip)**: 啟動速度較快，若 .exe 被防毒軟體誤刪，請改用此版本。
+*   **注意**：執行時若被 Windows Defender 攔截，請點選「其他資訊」並選擇「仍要執行」。
 
 ---
 
