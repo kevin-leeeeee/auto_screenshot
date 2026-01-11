@@ -24,3 +24,6 @@ test.txt
 main_playwright.py
 
 output/
+release_assets/
+*.zip
+*.exe
