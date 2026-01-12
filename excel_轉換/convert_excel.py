@@ -41,8 +41,9 @@ def select_file():
     )
     return file_path
 
-def main():
-    input_file = select_file()
+def main(input_file=None):
+    if not input_file:
+        input_file = select_file()
     
     if not input_file:
         print("未選擇檔案，程式結束。")
@@ -54,9 +55,7 @@ def main():
         wb = openpyxl.load_workbook(input_file, data_only=True)
         ws = wb.active
     except Exception as e:
-        print(f"Error reading Excel file: {e}")
-        input("Press Enter to exit...") # Pause so user can see error
-        return
+        raise ValueError(f"讀取 Excel 檔案失敗: {e}")
 
     # Get headers
     headers = {}
@@ -64,8 +63,7 @@ def main():
     try:
         header_row = next(row_iter)
     except StopIteration:
-        print("Error: Empty file")
-        return
+        raise ValueError("錯誤: 檔案內容為空")
 
     for idx, col_name in enumerate(header_row):
         headers[normalize(col_name)] = idx
@@ -74,10 +72,7 @@ def main():
     required_cols = ["公文文號", "檢舉人", "檢舉人信箱", "網址"]
     missing = [col for col in required_cols if col not in headers]
     if missing:
-        print(f"Error: Missing columns {missing}")
-        print(f"Available columns: {list(headers.keys())}")
-        input("Press Enter to exit...")
-        return
+        raise ValueError(f"錯誤: 缺少必要欄位 {missing}。現有欄位: {list(headers.keys())}")
 
     # Read data
     data = []
@@ -94,8 +89,7 @@ def main():
         data.append(row_data)
 
     if not data:
-        print("No data found.")
-        return
+        raise ValueError("錯誤: 未在 Excel 中找到有效數據")
 
     # Union-Find initialization
     parent = list(range(len(data)))
@@ -145,8 +139,9 @@ def main():
         groups[root].append(idx)
 
     # Output directory with timestamp
+    script_dir = os.path.dirname(os.path.abspath(__file__))
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    output_dir = os.path.join("output", timestamp)
+    output_dir = os.path.join(script_dir, "output", timestamp)
     os.makedirs(output_dir, exist_ok=True)
 
     # Process groups
@@ -187,6 +182,7 @@ def main():
         print(f"Created: {filepath}")
     
     print("Done!")
+    return output_dir
 
 if __name__ == "__main__":
     main()

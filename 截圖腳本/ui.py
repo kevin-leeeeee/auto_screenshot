@@ -65,86 +65,105 @@ class OverlayUI:
         except Exception:
             pass
 
-        self._margin = 10
-        self._top = 30
-        self._width = 520
-        self._height = 170
+        self._margin = 15
+        self._top = 40
+        self._width = 540
+        self._height = 180
         self._apply_geometry(self._width, self._height)
 
-        frame = tk.Frame(self.root, bg="black")
+        # Main background color (Slate 900)
+        bg_color = "#0f172a"
+        text_color = "#f1f5f9"
+        footer_color = "#94a3b8"
+        border_color = "#1e293b"
+
+        frame = tk.Frame(self.root, bg=bg_color, highlightthickness=1, highlightbackground=border_color)
         frame.pack(fill="both", expand=True)
 
         self.label = tk.Label(
             frame,
             text="",
-            fg="white",
-            bg="black",
-            font=("Segoe UI", 12),
+            fg=text_color,
+            bg=bg_color,
+            font=("Microsoft JhengHei UI", 11, "bold"),
             justify="left",
-            anchor="w",
-            padx=12,
-            pady=10,
+            anchor="nw",
+            padx=15,
+            pady=15,
         )
         self.label.pack(fill="both", expand=True)
 
-        footer_row = tk.Frame(frame, bg="black")
-        footer_row.pack(fill="x")
+        # Separator line
+        sep = tk.Frame(frame, height=1, bg=border_color)
+        sep.pack(fill="x", padx=10)
+
+        footer_row = tk.Frame(frame, bg=bg_color)
+        footer_row.pack(fill="x", pady=5)
 
         self.footer = tk.Label(
             footer_row,
             text="",
-            fg="#cccccc",
-            bg="black",
-            font=("Segoe UI", 10),
+            fg=footer_color,
+            bg=bg_color,
+            font=("Microsoft JhengHei UI", 9),
             anchor="w",
-            padx=12,
-            pady=4,
+            padx=15,
+            pady=6,
         )
         self.footer.pack(side="left", fill="x", expand=True)
 
-        if self._on_manual:
-            manual_btn = tk.Button(
+        # Button styles
+        btn_font = ("Microsoft JhengHei UI", 9, "bold")
+        
+        if self._on_stop:
+            btn = tk.Button(
                 footer_row,
-                text="截圖",
-                command=self._on_manual,
-                bg="#2f3a2f",
-                fg="white",
-                activebackground="#3a463a",
+                text="停止任務",
+                command=self._on_stop,
+                bg="#1e293b", # Slate 800
+                fg="#f8fafc",
+                activebackground="#334155",
                 activeforeground="white",
                 relief="flat",
-                padx=8,
-                pady=2,
+                font=btn_font,
+                padx=12,
+                pady=4,
+                cursor="hand2"
             )
-            manual_btn.pack(side="right", padx=(0, 6), pady=4)
+            btn.pack(side="right", padx=10, pady=8)
 
         self.pause_btn = tk.Button(
             footer_row,
             text="暫停",
             command=self._toggle_pause,
-            bg="#2f2f3a",
+            bg="#334155", # Slate 700
             fg="white",
-            activebackground="#3a3a46",
+            activebackground="#475569",
             activeforeground="white",
             relief="flat",
-            padx=8,
-            pady=2,
+            font=btn_font,
+            padx=12,
+            pady=4,
+            cursor="hand2"
         )
-        self.pause_btn.pack(side="right", padx=6, pady=4)
+        self.pause_btn.pack(side="right", padx=5, pady=8)
 
-        if self._on_stop:
-            btn = tk.Button(
+        if self._on_manual:
+            manual_btn = tk.Button(
                 footer_row,
-                text="停止",
-                command=self._on_stop,
-                bg="#333333",
+                text="強制截圖",
+                command=self._on_manual,
+                bg="#2563eb", # Blue 600
                 fg="white",
-                activebackground="#444444",
+                activebackground="#1d4ed8",
                 activeforeground="white",
                 relief="flat",
-                padx=10,
-                pady=2,
+                font=btn_font,
+                padx=12,
+                pady=4,
+                cursor="hand2"
             )
-            btn.pack(side="right", padx=8, pady=4)
+            manual_btn.pack(side="right", padx=5, pady=8)
 
         self.root.withdraw()
         self._resize_to_content()
@@ -294,13 +313,15 @@ class Tooltip:
         label = tk.Label(
             tip,
             text=self.text,
-            bg="#222222",
-            fg="white",
-            padx=8,
-            pady=4,
-            font=("Segoe UI", 9),
+            bg="#0f172a", # Slate 900
+            fg="#f8fafc", # Slate 50
+            padx=10,
+            pady=6,
+            font=("Microsoft JhengHei UI", 9),
             wraplength=240,
             justify="left",
+            highlightthickness=1,
+            highlightbackground="#1e293b"
         )
         label.pack()
         tip.geometry(f"+{x}+{y}")

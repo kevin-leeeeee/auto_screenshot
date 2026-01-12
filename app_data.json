@@ -1,0 +1,72 @@
+{
+    "stats": {
+        "total_conversions": 0,
+        "total_tasks": 0,
+        "success_rate": "100%",
+        "time_saved": "0s",
+        "total_seconds": 0.0
+    },
+    "history": [],
+    "settings": {
+        "config": {
+            "waitPerPage": {
+                "min": 3,
+                "max": 5
+            },
+            "screenshotDelay": 3,
+            "cropEnabled": true,
+            "cropTop": 0,
+            "cropBottom": 0,
+            "range": "viewport",
+            "batchRestEnabled": false,
+            "batchSize": 8,
+            "batchRestRange": {
+                "min": 20,
+                "max": 30
+            },
+            "keywords": [
+                "驗證碼",
+                "不存在",
+                "BSMI"
+            ],
+            "autoWordExport": true,
+            "skipDone": false,
+            "textCheckEnabled": false,
+            "scrollCapture": true,
+            "scrollTimes": 1,
+            "captchaKeywords": [
+                "驗證碼",
+                "recaptcha",
+                "turnstile"
+            ],
+            "notFoundKeywords": [
+                "不存在",
+                "查無資料",
+                "No result",
+                "404"
+            ],
+            "loginKeywords": [
+                "登入",
+                "Login",
+                "Sign in",
+                "帳號",
+                "密碼"
+            ],
+            "bsmiKeywords": [
+                "BSMI",
+                "檢驗",
+                "證書",
+                "標準檢驗局"
+            ],
+            "inputFile": "C:/Users/HP_600_G1_2ND/Desktop/工作自動化/excel_轉換/output/2026-01-12_15-13-02/1150050011.txt",
+            "inputFileDisplay": "1150050011.txt",
+            "inputFiles": [],
+            "cropPixels": 0
+        },
+        "display": {
+            "theme": "light",
+            "fontSize": 3
+        },
+        "jobQueue": []
+    }
+}

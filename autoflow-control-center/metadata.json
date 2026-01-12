@@ -1,0 +1,8 @@
+{
+  "name": "AutoFlow Control Center",
+  "description": "A sophisticated enterprise-grade automation dashboard for managing Excel processing, web scraping, and system configurations with real-time logging and task monitoring.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

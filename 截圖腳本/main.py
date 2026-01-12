@@ -8,9 +8,12 @@ from pathlib import Path
 
 try:
     from PIL import Image
-    from docx import Document
-except Exception:
+except ImportError:
     Image = None
+
+try:
+    from docx import Document
+except ImportError:
     Document = None
 
 from config import (
@@ -69,6 +72,30 @@ from utils_image import (
 
 # 初始化設定
 pyautogui.PAUSE = 0.15
+
+class DummyOverlay:
+    """
+    A dummy overlay that does nothing, used when running in headless/API mode
+    to avoid tkinter thread issues.
+    """
+    def __init__(self, *args, **kwargs): pass
+    def set_paused(self, paused: bool): pass
+    def wait_if_paused(self) -> str | None: return None
+    def set_footer(self, text: str): pass
+    def show(self): pass
+    def close(self): pass
+    def countdown_with_status(self, base_lines: list[str], total_seconds: int, final_seconds: int) -> str:
+        for t in range(total_seconds, 0, -1):
+             time.sleep(1)
+        return "done"
+    def set_footer(self, text: str): pass
+    def show(self): pass
+    def close(self): pass
+    def countdown_with_status(self, base_lines: list[str], total_seconds: int, final_seconds: int) -> str:
+        for t in range(total_seconds, 0, -1):
+             time.sleep(1)
+        return "done"
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -175,7 +202,7 @@ def handle_page_checks(cfg: RunConfig, overlay: OverlayUI) -> tuple[str | None, 
     return cls, False, False
 
 
-def capture_image(cfg: RunConfig, outpath: Path) -> tuple[Image.Image | None, bool]:
+def capture_image(cfg: RunConfig, outpath: Path) -> tuple[object | None, bool]:
     """
     Perform the actual capture (single or scroll).
     Returns (image, used_window_mode)
@@ -211,7 +238,7 @@ def capture_image(cfg: RunConfig, outpath: Path) -> tuple[Image.Image | None, bo
         return None, False
 
 
-def run_capture(cfg: RunConfig) -> bool:
+def run_capture(cfg: RunConfig, external_stop_callback=None, progress_callback=None, use_overlay=True) -> bool:
     """
     主要執行流程。
     Returns: bool (End execution request? True=Stop completely, False=Normal finish)
@@ -269,9 +296,10 @@ def run_capture(cfg: RunConfig) -> bool:
             return True
         return False
 
-    overlay = OverlayUI(
+    OverlayClass = OverlayUI if use_overlay else DummyOverlay
+    overlay = OverlayClass(
         on_stop=request_stop,
-        should_stop=lambda: stop_requested["flag"],
+        should_stop=lambda: stop_requested["flag"] or (external_stop_callback() if external_stop_callback else False),
         on_manual=request_manual,
         should_skip=consume_manual,
     )
@@ -301,7 +329,13 @@ def run_capture(cfg: RunConfig) -> bool:
             sleep_random(WARM_UP_WAIT_RANGE, "暖機等待")
             overlay.set_footer("")
 
+        if progress_callback:
+            progress_callback(0, total)
+
         for idx, (url, note) in enumerate(urls, start=1):
+            if progress_callback:
+                progress_callback(processed_this_run, total)
+
             if stop_requested["flag"]:
                 flush_done(force=True)
                 overlay.set_footer("已停止")
@@ -428,6 +462,9 @@ def run_capture(cfg: RunConfig) -> bool:
         
         logger.info("Run finished.")
         logger.info(f"Completed: {processed_this_run}, Skipped: {skipped_this_run}")
+        logger.info(f"Completed: {processed_this_run}, Skipped: {skipped_this_run}")
+        if progress_callback:
+            progress_callback(processed_this_run, total)
         overlay.set_footer("完成")
         show_info_ui("完成", f"本次完成 {processed_this_run} 個，跳過 {skipped_this_run} 個。")
 
@@ -449,7 +486,63 @@ def run_capture(cfg: RunConfig) -> bool:
         flush_done(force=True)
         overlay.close()
 
-    return False
+
+def run_from_api(should_stop_callback, config_overrides=None, progress_callback=None):
+    """
+    Entry point for API/Server to run the capture process.
+    should_stop_callback: a callable that returns True if we should abort.
+    config_overrides: dict of configuration options from UI
+    """
+    # 1. Resolve URLs file (Must be absolute as we will chdir later)
+    urls_file_raw = config_overrides.get("urls_file") if config_overrides else None
+    if not urls_file_raw:
+        urls_file_raw = DEFAULT_URLS_FILE
+    
+    urls_file = Path(urls_file_raw).resolve()
+    
+    # 2. Resolve Output Dir
+    if config_overrides and config_overrides.get("output_dir"):
+         output_dir = Path(config_overrides["output_dir"]).resolve()
+    else:
+         output_dir = Path(default_output_dir_from_urls(urls_file)).resolve()
+    
+    # Base config
+    cfg = RunConfig(
+        urls_file=urls_file,
+        output_dir=output_dir,
+        done_log=Path(DONE_LOG).resolve(),
+        warmup_enabled=WARM_UP_ENABLED,
+        word_enabled=WORD_ENABLED_DEFAULT,
+    )
+
+    # Apply overrides if present
+    if config_overrides:
+        if "autoWordExport" in config_overrides:
+            cfg.word_enabled = config_overrides["autoWordExport"]
+        if "skip_done" in config_overrides:
+            cfg.skip_done = config_overrides["skip_done"]
+        if "text_check_enabled" in config_overrides:
+            cfg.text_check_enabled = config_overrides["text_check_enabled"]
+        if "scroll_capture" in config_overrides:
+            cfg.scroll_capture = config_overrides["scroll_capture"]
+        if "crop_top_px" in config_overrides:
+            cfg.crop_top_px = config_overrides["crop_top_px"]
+            cfg.crop_enabled = True # Auto enable crop if px is set
+        if "crop_bottom_px" in config_overrides:
+            cfg.crop_bottom_px = config_overrides["crop_bottom_px"]
+            cfg.crop_enabled = True
+        if "page_wait_range" in config_overrides:
+            cfg.page_wait_range = config_overrides["page_wait_range"]
+
+        # Add other fields as needed
+        if "keywords" in config_overrides:
+             # Basic keyword mapping - this might need more robust logic if strict mapping is required
+             pass
+
+    run_capture(cfg, external_stop_callback=should_stop_callback, progress_callback=progress_callback, use_overlay=True)
+    return str(cfg.output_dir)
+
+
 
 
 def main():
