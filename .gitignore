@@ -2,7 +2,6 @@ __pycache__/
 *.pyc
 dist/
 build/
-*.spec
 *.log
 preferences.json
 done_urls.json
