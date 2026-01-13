@@ -6,9 +6,17 @@ interface SidebarProps {
   currentView: ViewType;
   onViewChange: (view: ViewType) => void;
   systemStatus?: 'idle' | 'running';
+  onCheckUpdate?: () => void;
+  hasUpdate?: boolean;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, systemStatus = 'idle' }) => {
+const Sidebar: React.FC<SidebarProps> = ({
+  currentView,
+  onViewChange,
+  systemStatus = 'idle',
+  onCheckUpdate,
+  hasUpdate = false
+}) => {
   const navItems = [
     { id: 'dashboard' as ViewType, label: '儀表板', icon: 'dashboard' },
     { id: 'logs' as ViewType, label: '執行日誌', icon: 'list_alt' },
@@ -24,7 +32,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, systemStat
           </div>
           <div>
             <h1 className="text-lg font-bold leading-none dark:text-white">AutoFlow</h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400">v2.0.0</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">v2.1.0</p>
           </div>
         </div>
 
@@ -46,6 +54,21 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, systemStat
       </div>
 
       <div className="flex flex-col gap-4">
+        {/* Check Update Button */}
+        {onCheckUpdate && (
+          <button
+            onClick={onCheckUpdate}
+            className="relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700"
+          >
+            <span className="material-symbols-outlined text-[20px]">system_update</span>
+            <span className="text-sm font-medium">檢查更新</span>
+            {hasUpdate && (
+              <span className="absolute top-1 right-1 size-2 bg-red-500 rounded-full animate-pulse"></span>
+            )}
+          </button>
+        )}
+
+        {/* System Status */}
         <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
           <p className="text-xs font-semibold uppercase text-slate-400 mb-2">系統狀態</p>
           <div className="flex items-center gap-2">

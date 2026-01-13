@@ -41,7 +41,7 @@ def select_file():
     )
     return file_path
 
-def main(input_file=None):
+def main(input_file=None, start_date=None, end_date=None):
     if not input_file:
         input_file = select_file()
     
@@ -50,6 +50,10 @@ def main(input_file=None):
         return
 
     print(f"正在處理: {input_file}")
+    if start_date:
+        print(f"篩選起始日期: {start_date.replace('-', '年', 1).replace('-', '月', 1) + '日'}")
+    if end_date:
+        print(f"篩選結束日期: {end_date.replace('-', '年', 1).replace('-', '月', 1) + '日'}")
 
     try:
         wb = openpyxl.load_workbook(input_file, data_only=True)
@@ -69,17 +73,64 @@ def main(input_file=None):
         headers[normalize(col_name)] = idx
 
     # Ensure required columns exist
-    required_cols = ["公文文號", "檢舉人", "檢舉人信箱", "網址"]
+    # "檢舉日期" is optional if strictly required only for filtering, but good to have check if filtering is enabled
+    required_cols = ["公文文號", "檢舉人", "檢舉人信箱", "網址"] 
     missing = [col for col in required_cols if col not in headers]
     if missing:
         raise ValueError(f"錯誤: 缺少必要欄位 {missing}。現有欄位: {list(headers.keys())}")
 
+    # Parse filter dates
+    filter_start = None
+    filter_end = None
+    try:
+        if start_date:
+            filter_start = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
+        if end_date:
+            filter_end = datetime.datetime.strptime(end_date, "%Y-%m-%d").date()
+    except ValueError:
+        raise ValueError("日期格式錯誤，請使用 年-月-日 (例如 2024-01-01)")
+
     # Read data
     data = []
+    
+    # Check if we need to filter by date
+    check_date = (filter_start is not None) or (filter_end is not None)
+    date_col_idx = headers.get("檢舉日期")
+    
+    if check_date and date_col_idx is None:
+        raise ValueError("無法篩選日期：Excel 中找不到「檢舉日期」欄位")
+
     for row in row_iter:
         # Check if row is empty/all None
         if not any(row):
             continue
+            
+        # Date filtering logic
+        if check_date:
+            raw_date = row[date_col_idx]
+            row_date = None
+            if isinstance(raw_date, datetime.datetime):
+                row_date = raw_date.date()
+            elif isinstance(raw_date, str):
+                try:
+                    # Try parsing common formats
+                    if "-" in raw_date:
+                         row_date = datetime.datetime.strptime(raw_date, "%Y-%m-%d").date()
+                    elif "/" in raw_date:
+                         row_date = datetime.datetime.strptime(raw_date, "%Y/%m/%d").date()
+                except:
+                    pass
+            
+            if row_date:
+                if filter_start and row_date < filter_start:
+                    continue
+                if filter_end and row_date > filter_end:
+                    continue
+            else:
+                # If date is missing or invalid format, decide policy. 
+                # Strict: skip. Loose: keep. Let's skip to be safe if filtering is ON.
+                continue
+
         row_data = {
             "公文文號": normalize(row[headers["公文文號"]]),
             "檢舉人": normalize(row[headers["檢舉人"]]),
@@ -89,7 +140,7 @@ def main(input_file=None):
         data.append(row_data)
 
     if not data:
-        raise ValueError("錯誤: 未在 Excel 中找到有效數據")
+        raise ValueError("錯誤: 未在 Excel 中找到有效數據 (可能因日期篩選而為空)")
 
     # Union-Find initialization
     parent = list(range(len(data)))

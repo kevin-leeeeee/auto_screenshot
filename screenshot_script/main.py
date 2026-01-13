@@ -78,22 +78,29 @@ class DummyOverlay:
     A dummy overlay that does nothing, used when running in headless/API mode
     to avoid tkinter thread issues.
     """
-    def __init__(self, *args, **kwargs): pass
-    def set_paused(self, paused: bool): pass
-    def wait_if_paused(self) -> str | None: return None
-    def set_footer(self, text: str): pass
-    def show(self): pass
-    def close(self): pass
+    def __init__(self, *args, **kwargs): 
+        pass
+    
+    def set_paused(self, paused: bool): 
+        pass
+    
+    def wait_if_paused(self) -> str | None: 
+        return None
+    
+    def set_footer(self, text: str): 
+        pass
+    
+    def show(self): 
+        pass
+    
+    def close(self): 
+        pass
+    
     def countdown_with_status(self, base_lines: list[str], total_seconds: int, final_seconds: int) -> str:
+        """Simulate countdown by sleeping"""
+        import time
         for t in range(total_seconds, 0, -1):
-             time.sleep(1)
-        return "done"
-    def set_footer(self, text: str): pass
-    def show(self): pass
-    def close(self): pass
-    def countdown_with_status(self, base_lines: list[str], total_seconds: int, final_seconds: int) -> str:
-        for t in range(total_seconds, 0, -1):
-             time.sleep(1)
+            time.sleep(1)
         return "done"
 
 
@@ -147,7 +154,7 @@ def parse_args():
 
 def handle_page_checks(cfg: RunConfig, overlay: OverlayUI) -> tuple[str | None, bool, bool]:
     """
-    Check for login/captcha/not found pages.
+    Check for login/captcha/not found pages based on priority order.
     Returns: (classification_result, should_stop, should_skip)
     """
     if not cfg.text_check_enabled:
@@ -155,51 +162,105 @@ def handle_page_checks(cfg: RunConfig, overlay: OverlayUI) -> tuple[str | None, 
 
     # 進行文字檢查 (Ctrl+A)
     extracted_text = extract_text_content()
-    
-    cls = classify_text(
-        extracted_text, 
-        cfg.captcha_keywords, 
-        cfg.not_found_keywords, 
-        cfg.bsmi_keywords, 
-        cfg.login_keywords
-    )
-    logger.info(f"  分類: {cls}")
-    
-    if cls == "登入":
-        logger.warning("Detected login page. Pausing for manual intervention...")
-        overlay.set_footer("偵測到登入頁面，請登入後按繼續")
-        overlay.set_paused(True)
-        overlay.show()
-        # Wait for user to resume
-        if overlay.wait_if_paused() == "stop":
-            return cls, True, False
-        overlay.set_footer("")
-        # Return checking again? Or just continue? Original code continued re-processing.
-        # But here we typically just assume user fixed it. 
-        # For simplicity, we assume fixed and return. Ideally we might want to re-classify?
-        # The caller loop will decide whether to retry screenshot.
-        return cls, False, False
+    if not extracted_text:
+        return "無法判斷", False, False
 
-    elif cls == "驗證是否人類":
-        logger.warning("Detected CAPTCHA. Pausing for manual intervention...")
-        overlay.set_footer("偵測到驗證碼，請驗證後按繼續")
+    from utils_image import normalize_text
+    t = normalize_text(extracted_text[:min(2000, len(extracted_text))])
+
+    # 定義類別與其關鍵字/邏輯的映射
+    # 注意：這裡的 Key 必須與前端傳來的 cfg.keywords 內容一致
+    category_logic = {
+        "登入": {
+            "keywords": cfg.login_keywords,
+            "pause_msg": "偵測到登入頁面，請登入後按繼續",
+            "footer": "偵測到登入頁面"
+        },
+        "拼圖與人機驗證": {
+            "keywords": cfg.captcha_keywords,
+            "pause_msg": "偵測到驗證碼或拼圖，請處理後按繼續",
+            "footer": "偵測到驗證碼/拼圖"
+        },
+        "查無資料": {
+            "keywords": cfg.not_found_keywords,
+            "is_skip": True,
+            "footer": "查無資料"
+        },
+        "BSMI": {
+            "keywords": cfg.bsmi_keywords,
+            "footer": "偵測到 BSMI"
+        }
+    }
+
+    # 取得優先順序 (優先讀取前端傳來的順序)
+    priority_order = getattr(cfg, "keywords", ["登入", "拼圖與人機驗證", "查無資料", "BSMI"])
+    if not priority_order:
+        priority_order = ["登入", "拼圖與人機驗證", "查無資料", "BSMI"]
+    
+    # 這裡也要確保舊版的「驗證碼」和「不存在」在判斷時能被正確映射到新名稱 (如果有的話)
+    priority_order = [("拼圖與人機驗證" if k == "驗證碼" else ("查無資料" if k == "不存在" else k)) for k in priority_order]
+
+    detected_cls = None
+    
+    # 依照優先順序循環檢查
+    for cat_name in priority_order:
+        # 1. 檢查預設類別
+        if cat_name in category_logic:
+            logic = category_logic[cat_name]
+            kws = logic.get("keywords", [])
+            if any(normalize_text(k) in t for k in kws):
+                detected_cls = cat_name
+                break
+        
+        # 2. 檢查自訂類別
+        elif cfg.custom_categories and cat_name in cfg.custom_categories:
+            kws = cfg.custom_categories[cat_name]
+            if any(normalize_text(k) in t for k in kws):
+                detected_cls = cat_name
+                break
+
+    if not detected_cls:
+        # Standard page behavior
+        click_window_corner("bottom_left")
+        time.sleep(0.05)
+        pyautogui.press("esc")
+        return "無法判斷", False, False
+
+    logger.info(f"  優先權判定結果: {detected_cls}")
+
+    # --- 暫停邏輯 ---
+    should_pause = False
+    if cfg.category_pause:
+        should_pause = cfg.category_pause.get(detected_cls, False)
+    else:
+        # 相容舊版預設
+        should_pause = detected_cls in ["登入", "拼圖與人機驗證"]
+
+    if should_pause:
+        logger.warning(f"Detected {detected_cls}. Pausing for manual intervention...")
+        logic = category_logic.get(detected_cls, {})
+        msg = logic.get("pause_msg", f"偵測到 {detected_cls}，請處理後按繼續")
+        
+        overlay.set_footer(msg)
         overlay.set_paused(True)
         overlay.show()
         if overlay.wait_if_paused() == "stop":
-            return cls, True, False
+            return detected_cls, True, False
         overlay.set_footer("")
-        return cls, False, False
+
+    # --- 預設行為 (跳過或繼續) ---
+    if detected_cls == "查無資料":
+        logger.warning("No data found. Skipping...")
+        return detected_cls, False, True
     
-    elif cls == "商品不存在":
-        logger.warning("Product not found. Skipping...")
-        return cls, False, True
-    
-    # If standard page, ensure window is ready for screenshot (click corner, esc)
+    # 正常頁面微調
     click_window_corner("bottom_left")
     time.sleep(0.05)
     pyautogui.press("esc")
     
-    return cls, False, False
+    return detected_cls, False, False
+
+
 
 
 def capture_image(cfg: RunConfig, outpath: Path) -> tuple[object | None, bool]:
@@ -354,8 +415,11 @@ def run_capture(cfg: RunConfig, external_stop_callback=None, progress_callback=N
             url_short = short_url(url)
             
             # --- Single URL Processing Loop (Retry Logic) ---
-            while True:
-                logger.info(f"[{idx}/{total}] Processing {url_short}")
+            max_retries = 3  # Maximum retry attempts per URL
+            retry_count = 0
+            
+            while retry_count < max_retries:
+                logger.info(f"[{idx}/{total}] Processing {url_short} (Attempt {retry_count + 1}/{max_retries})")
                 overlay.set_footer(f"[{idx}/{total}] {short_url(url, 50)}")
                 webbrowser.open(url, new=1)
 
@@ -379,8 +443,6 @@ def run_capture(cfg: RunConfig, external_stop_callback=None, progress_callback=N
                     overlay.set_footer("已停止")
                     return True
                 if result == "skip":
-                    # skip means "manual capture trigger" in overlay logic usually?
-                    # Actually result='skip' comes from 'skip_wait' (manual button).
                     overlay.set_footer("手動截圖")
 
                 time.sleep(UI_HIDE_BUFFER_SECONDS)
@@ -394,23 +456,22 @@ def run_capture(cfg: RunConfig, external_stop_callback=None, progress_callback=N
                 
                 if should_skip_url:
                     # e.g. Product Not Found
-                    done.add(url) # Mark as done even if skipped due to "not found"
+                    done.add(url)
                     if cfg.text_check_enabled and cls is not None:
                         done_classes[url] = cls
                     done_dirty = True
-                    break # Next URL
+                    break  # Exit retry loop, move to next URL
 
-                # If login/captcha was detected but user resolved it (cls is returned but not stop/skip),
-                # we technically should re-check or just proceed to capture.
-                # The original code did `continue` to re-process (re-open browser? or re-loop?)
-                # Original code: `continue # Re-process current URL` which goes back to `while True`.
-                # That means it re-opens the browser window? Yes `webbrowser.open(url, new=1)`.
-                # That might be annoying if user just logged in on the current tab.
-                # But let's stick to original behavior for safety: if we hit a blocker, we retry the whole flow for this URL.
-                if cls in ["登入", "驗證是否人類"] and not should_skip_url: 
-                     # "商品不存在" already handled by should_skip_url=True
-                     # So this is for Login/Captcha where we want to retry the loop.
-                     continue
+                # If login/captcha detected and user resolved it, retry
+                if cls in ["登入", "拼圖與人機驗證"]:
+                    retry_count += 1
+                    if retry_count < max_retries:
+                        logger.info(f"  Retrying after {cls} resolution...")
+                        time.sleep(2)  # Brief pause before retry
+                        continue
+                    else:
+                        logger.warning(f"  Max retries reached for {url_short}")
+                        break
 
                 # --- Capture ---
                 ts = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -421,9 +482,14 @@ def run_capture(cfg: RunConfig, external_stop_callback=None, progress_callback=N
                 
                 if img is None:
                     overlay.set_footer("截圖失敗")
-                    # Retry logic? Original code says "continue" (retry this URL).
-                    # Let's retry.
-                    continue
+                    retry_count += 1
+                    if retry_count < max_retries:
+                        logger.warning(f"  Capture failed, retrying... ({retry_count}/{max_retries})")
+                        time.sleep(1)
+                        continue
+                    else:
+                        logger.error(f"  Max retries reached, skipping {url_short}")
+                        break
 
                 try:
                     img.save(outpath)
@@ -444,12 +510,21 @@ def run_capture(cfg: RunConfig, external_stop_callback=None, progress_callback=N
                             logger.error(f"Word export error: {e}")
                     
                     done_dirty = True
-                    break # Done with this URL
+                    
+                    # Release image from memory
+                    del img
+                    
+                    break  # Success, exit retry loop
 
                 except Exception as exc:
                     logger.error(f"Save failed: {exc}")
                     overlay.set_footer(f"儲存失敗: {exc}")
-                    continue # Retry
+                    retry_count += 1
+                    if retry_count < max_retries:
+                        time.sleep(1)
+                        continue
+                    else:
+                        break
 
             # End While (Single URL)
             
@@ -534,10 +609,14 @@ def run_from_api(should_stop_callback, config_overrides=None, progress_callback=
         if "page_wait_range" in config_overrides:
             cfg.page_wait_range = config_overrides["page_wait_range"]
 
-        # Add other fields as needed
-        if "keywords" in config_overrides:
-             # Basic keyword mapping - this might need more robust logic if strict mapping is required
-             pass
+        # Mapping all keywords and pause settings
+        if "captchaKeywords" in config_overrides: cfg.captcha_keywords = config_overrides["captchaKeywords"]
+        if "notFoundKeywords" in config_overrides: cfg.not_found_keywords = config_overrides["notFoundKeywords"]
+        if "bsmiKeywords" in config_overrides: cfg.bsmi_keywords = config_overrides["bsmiKeywords"]
+        if "loginKeywords" in config_overrides: cfg.login_keywords = config_overrides["loginKeywords"]
+        
+        if "custom_categories" in config_overrides: cfg.custom_categories = config_overrides["custom_categories"]
+        if "category_pause" in config_overrides: cfg.category_pause = config_overrides["category_pause"]
 
     run_capture(cfg, external_stop_callback=should_stop_callback, progress_callback=progress_callback, use_overlay=True)
     return str(cfg.output_dir)

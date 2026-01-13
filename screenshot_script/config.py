@@ -47,23 +47,12 @@ PREFS_FILE = "preferences.json"
 BROWSER_TITLE_KEYWORDS = ("chrome", "edge", "firefox", "brave", "opera", "vivaldi")
 
 CAPTCHA_KEYWORDS = [
-    "驗證是否人類",
-    "人機驗證",
-    "我不是機器人",
-    "請驗證您是人類",
-    "安全驗證",
-    "captcha",
-    "verify",
-    "驗證資訊失敗",
-    "抱歉，我們驗證資訊上遇到了些問題，麻煩您再試一次",
-    "安全性驗證",
+    "驗證碼", "人機驗證", "我不是機器人", "captcha", "verify", "請驗證您是人類",
+    "安全驗證", "驗證資訊失敗", "拼圖", "puzzle", "robot", "automated", "rate limit",
+    "verification", "滑動圖塊", "完成驗證", "安全性驗證"
 ]
 NOT_FOUND_KEYWORDS = [
-    "商品不存在",
-    "已下架",
-    "找不到商品",
-    "商品已刪除",
-    "商品已下架",
+    "商品不存在", "已下架", "找不到商品", "商品已刪除", "商品已下架", "查無資料"
 ]
 BSMI_KEYWORDS = [
     "bsmi",
@@ -110,6 +99,11 @@ class RunConfig:
     login_mode: bool = False
     headless: bool = True
     cdp_mode: bool = False
+    custom_categories: dict = None
+    category_pause: dict = None
+    keywords: list = None
+
+
 
     def __post_init__(self):
         if self.captcha_keywords is None:

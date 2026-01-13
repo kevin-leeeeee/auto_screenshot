@@ -65,7 +65,6 @@ const Header: React.FC<HeaderProps> = ({ onViewChange, onShowLogs, onToggleHelp,
             className={`p-2 rounded-lg transition-all relative ${showNotifications ? 'bg-blue-600/10 text-blue-600' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
           >
             <span className="material-symbols-outlined">notifications</span>
-            <span className="absolute top-2 right-2 size-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>
           </button>
 
           {showNotifications && (

@@ -8,6 +8,7 @@ import Logs from './views/Logs';
 import ConfigurationModal from './components/ConfigurationModal';
 import LogModal from './components/LogModal';
 import HelpModal from './components/HelpModal';
+import UpdateDialog from './components/UpdateDialog';
 import { ViewType, AutomationConfig, DisplaySettings, TaskStatus } from './types';
 
 const App: React.FC = () => {
@@ -15,6 +16,9 @@ const App: React.FC = () => {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isLogOpen, setIsLogOpen] = useState(false);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+  const [updateInfo, setUpdateInfo] = useState<any>(null);
+  const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
+  const [isUpdatingScripts, setIsUpdatingScripts] = useState(false);
 
   const [config, setConfig] = useState<AutomationConfig>({
     waitPerPage: { min: 3, max: 10 },
@@ -26,17 +30,24 @@ const App: React.FC = () => {
     batchRestEnabled: true,
     batchSize: 8,
     batchRestRange: { min: 20, max: 30 },
-    keywords: ['驗證碼', '不存在', 'BSMI', '登入'],
+    keywords: ['登入', '拼圖與人機驗證', '查無資料', 'BSMI'],
     autoWordExport: false,
     skipDone: false,
     textCheckEnabled: false,
     scrollCapture: false,
-    scrollTimes: 1,
-    // Defaults from config.py
+    scrollTimes: 4,
+    customCategories: {},
+    categoryPause: {
+      '拼圖與人機驗證': true,
+      '登入': true,
+      '查無資料': false,
+      'BSMI': false
+    },
+    // Defaults from config.py and playwright settings
     captchaKeywords: [
-      "驗證是否人類", "人機驗證", "我不是機器人", "請驗證您是人類",
-      "安全驗證", "captcha", "verify", "驗證資訊失敗",
-      "抱歉，我們驗證資訊上遇到了些問題，麻煩您再試一次", "安全性驗證"
+      "驗證碼", "人機驗證", "我不是機器人", "captcha", "verify", "請驗證您是人類",
+      "安全驗證", "驗證資訊失敗", "拼圖", "puzzle", "robot", "automated", "rate limit",
+      "verification", "滑動圖塊", "完成驗證", "安全性驗證"
     ],
     notFoundKeywords: [
       "商品不存在", "已下架", "找不到商品", "商品已刪除", "商品已下架"
@@ -94,12 +105,12 @@ const App: React.FC = () => {
     };
     const scaleMap: Record<number, number> = {
       1: 0.85,
-      2: 1.0,
-      3: 1.25,
-      4: 1.5,
-      5: 1.8,
-      6: 2.1,
-      7: 2.5,
+      2: 1.0,  // Standard
+      3: 1.3,  // Medium
+      4: 1.7,  // Large
+      5: 2.2,  // XL
+      6: 2.8,  // 2XL
+      7: 3.5,  // MAX
     };
 
     const scaleFactor = scaleMap[displaySettings.fontSize] || 1.0;
@@ -120,13 +131,18 @@ const App: React.FC = () => {
       
       /* 全面覆寫文字標籤與類別，並強化行高防止重疊 */
       h1, h2, h3, h4, h5, h6, p, span, div, button, label, input, textarea {
-        line-height: 1.45 !important;
+        line-height: 1.4 !important;
       }
 
-      .text-[9px]  { font-size: calc(9px  * var(--ts)) !important; }
-      .text-[10px] { font-size: calc(10px * var(--ts)) !important; }
-      .text-[11px] { font-size: calc(11px * var(--ts)) !important; }
-      .text-[13px] { font-size: calc(13px * var(--ts)) !important; }
+      /* 修正 Tailwind 的中括號選擇器逃逸字元 */
+      .text-\\[9px\\]  { font-size: calc(9px  * var(--ts)) !important; }
+      .text-\\[10px\\] { font-size: calc(10px * var(--ts)) !important; }
+      .text-\\[11px\\] { font-size: calc(11px * var(--ts)) !important; }
+      .text-\\[12px\\] { font-size: calc(12px * var(--ts)) !important; }
+      .text-\\[13px\\] { font-size: calc(13px * var(--ts)) !important; }
+      .text-\\[20px\\] { font-size: calc(20px * var(--ts)) !important; }
+      .text-\\[14px\\] { font-size: calc(14px * var(--ts)) !important; }
+      
       .text-xs     { font-size: calc(0.75rem * var(--ts)) !important; }
       .text-sm     { font-size: calc(0.875rem * var(--ts)) !important; }
       .text-base   { font-size: calc(1rem   * var(--ts)) !important; }
@@ -140,7 +156,10 @@ const App: React.FC = () => {
       h2 { font-size: calc(1.5rem * var(--ts)) !important; }
       h3 { font-size: calc(1.25rem * var(--ts)) !important; }
 
-      .material-symbols-outlined { font-size: inherit; }
+      .material-symbols-outlined { 
+        font-size: inherit !important; 
+        vertical-align: middle;
+      }
     `;
   }, [displaySettings]);
 
@@ -152,9 +171,64 @@ const App: React.FC = () => {
         // @ts-ignore
         const state = await window.pywebview.api.get_app_state();
         if (state.settings) {
-          if (state.settings.config) setConfig(prev => ({ ...prev, ...state.settings.config }));
+          if (state.settings.config) {
+            // Force '登入' to be enabled by default as per user request, even if missing in saved config
+            const loadedConfig = { ...state.settings.config };
+            if (loadedConfig.keywords) {
+              // Migrate old names
+              loadedConfig.keywords = loadedConfig.keywords.map((k: string) => {
+                if (k === '驗證碼') return '拼圖與人機驗證';
+                if (k === '不存在') return '查無資料';
+                return k;
+              });
+
+              // Ensure '登入' is at first position if not present or moved
+              if (!loadedConfig.keywords.includes('登入')) {
+                loadedConfig.keywords = ['登入', ...loadedConfig.keywords];
+              } else {
+                // Ensure '登入' is moved to the front if it's elsewhere
+                const otherKws = loadedConfig.keywords.filter((k: string) => k !== '登入');
+                loadedConfig.keywords = ['登入', ...otherKws];
+              }
+
+              // Ensure other defaults exist
+              if (!loadedConfig.keywords.includes('拼圖與人機驗證')) loadedConfig.keywords.push('拼圖與人機驗證');
+              if (!loadedConfig.keywords.includes('查無資料')) loadedConfig.keywords.push('查無資料');
+              if (!loadedConfig.keywords.includes('BSMI')) loadedConfig.keywords.push('BSMI');
+            } else {
+              loadedConfig.keywords = ['登入', '拼圖與人機驗證', '查無資料', 'BSMI'];
+            }
+
+            // Ensure categoryPause exists and migrate keys
+            if (loadedConfig.categoryPause) {
+              const oldPause = loadedConfig.categoryPause;
+              const newPause: any = {};
+              Object.keys(oldPause).forEach(k => {
+                let newKey = k;
+                if (k === '驗證碼') newKey = '拼圖與人機驗證';
+                if (k === '不存在') newKey = '查無資料';
+                newPause[newKey] = oldPause[k];
+              });
+              loadedConfig.categoryPause = newPause;
+            } else {
+              loadedConfig.categoryPause = {
+                '拼圖與人機驗證': true,
+                '登入': true,
+                '查無資料': false,
+                'BSMI': false
+              };
+            }
+            setConfig(prev => ({ ...prev, ...loadedConfig }));
+          }
           if (state.settings.display) setDisplaySettings(prev => ({ ...prev, ...state.settings.display }));
           if (state.settings.jobQueue) setJobQueue(state.settings.jobQueue);
+        }
+
+        // Check for updates
+        // @ts-ignore
+        const update = await window.pywebview.api.check_update();
+        if (update && update.has_update) {
+          setUpdateInfo(update);
         }
       }
     };
@@ -255,6 +329,34 @@ const App: React.FC = () => {
     setDraggedIndex(null);
   };
 
+  const handleCheckUpdate = async () => {
+    // @ts-ignore
+    if (window.pywebview?.api) {
+      // @ts-ignore
+      const update = await window.pywebview.api.get_update_info();
+      if (update) {
+        setUpdateInfo(update);
+        setIsUpdateDialogOpen(true);
+      }
+    }
+  };
+
+  const handleUpdateScripts = async () => {
+    setIsUpdatingScripts(true);
+    // @ts-ignore
+    if (window.pywebview?.api) {
+      // @ts-ignore
+      const res = await window.pywebview.api.update_scripts();
+      setIsUpdatingScripts(false);
+      if (res.status === 'success') {
+        alert('核心邏輯已成功更新！無需重啟即可生效。');
+        setUpdateInfo(null);
+      } else {
+        alert('更新失敗: ' + res.message);
+      }
+    }
+  };
+
   return (
     <div className="flex h-screen overflow-hidden bg-[#f6f6f8] dark:bg-slate-950 transition-colors duration-300 font-sans">
       {/* Sidebar Component */}
@@ -262,6 +364,8 @@ const App: React.FC = () => {
         currentView={currentView}
         onViewChange={setCurrentView}
         systemStatus={taskStatus.status}
+        onCheckUpdate={handleCheckUpdate}
+        hasUpdate={updateInfo?.has_update || false}
       />
 
       <main className="flex-1 flex flex-col overflow-hidden relative">
@@ -313,6 +417,14 @@ const App: React.FC = () => {
           onClose={() => setIsHelpOpen(false)}
         />
 
+        {/* Update Dialog */}
+        {isUpdateDialogOpen && updateInfo && (
+          <UpdateDialog
+            updateInfo={updateInfo}
+            onClose={() => setIsUpdateDialogOpen(false)}
+          />
+        )}
+
         {/* Floating Toast Notifications (Bottom Left) */}
         <div className="absolute bottom-6 left-6 z-[100] flex flex-col gap-3 pointer-events-none">
           {toasts.map((toast) => (
@@ -338,6 +450,54 @@ const App: React.FC = () => {
               </div>
             </div>
           ))}
+
+          {/* Update Notification Toast */}
+          {updateInfo?.has_update && (
+            <div className="w-80 bg-white dark:bg-slate-900 border-l-4 border-emerald-500 shadow-2xl rounded-xl p-4 flex gap-3 animate-in slide-in-from-left-full duration-500 pointer-events-auto ring-1 ring-emerald-500/10">
+              <div className="size-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 shrink-0">
+                <span className="material-symbols-outlined">auto_awesome</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-start">
+                  <p className="text-[11px] font-black text-emerald-600 uppercase tracking-tighter animate-pulse">✨ 發現新版本</p>
+                  <button
+                    onClick={() => setUpdateInfo(null)}
+                    className="text-slate-300 hover:text-slate-500 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">close</span>
+                  </button>
+                </div>
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1">
+                  版本 {updateInfo.latest_version} 已發布！
+                </p>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    onClick={() => {
+                      // @ts-ignore
+                      if (window.pywebview?.api) {
+                        // @ts-ignore
+                        window.pywebview.api.open_browser(updateInfo.release_url);
+                      }
+                    }}
+                    className="text-[10px] bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-emerald-700 transition-colors flex items-center gap-1"
+                  >
+                    <span className="material-symbols-outlined text-xs">download</span>
+                    下載主程式
+                  </button>
+                  <button
+                    onClick={handleUpdateScripts}
+                    disabled={isUpdatingScripts}
+                    className="text-[10px] bg-slate-900 dark:bg-slate-700 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-slate-800 transition-colors flex items-center gap-1 disabled:opacity-50"
+                  >
+                    <span className="material-symbols-outlined text-xs animate-spin-slow">
+                      {isUpdatingScripts ? 'sync' : 'auto_fix'}
+                    </span>
+                    {isUpdatingScripts ? '更新中...' : '僅更新核心邏輯'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </main>
 

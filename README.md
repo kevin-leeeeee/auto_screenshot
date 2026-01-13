@@ -1,25 +1,29 @@
-# AutoFlow Control Center (v2.0.0)
+# AutoFlow Control Center (v2.2.0)
 
-這是一個全功能的自動化工作控制中心，整合了 `Excel 轉檔` 與 `網頁自動截圖` 兩大核心功能，並提供現代化的操作介面與任務管理系統。
+這是一個全功能的自動化工作控制中心,整合了 `Excel 轉檔` 與 `網頁自動截圖` 兩大核心功能,並提供現代化的操作介面與任務管理系統。
 
-## 🚀 最新功能 (v2.0.0)
+## 🚀 最新功能 (v2.1.0)
 
-### 1. 整合控制台
-- **單一入口**：不再需要分別開啟不同的執行檔，所有功能皆整合於同一介面。
-- **現代化 UI**：採用深色模式支援 (Dark Mode)、流暢的動畫與響應式佈局。
+### 1. 🔌 插拔式邏輯架構
+- **核心分離**:將執行邏輯 (`excel_轉換` 與 `截圖腳本`) 從 `.exe` 中移出。
+- **快速維護**:未來更新邏輯時,只需替換資料夾內的檔案,**無需重新下載 300MB 的主程式**。
+- **免重複打包**:改善了更新效率,讓版本迭代更加輕量。
 
-### 2. 任務排程 (Job Queue)
-- **批量處理**：支援一次加入多個 Excel 檔案至待執行清單。
-- **拖曳排序**：可直接拖曳調整任務執行順序。
-- **橫向收合**：右側面板可水平收起，最大化工作區域。
+### 2. ✨ 自動更新檢查
+- **即時通知**:啟動時自動檢查 GitHub 最新版本。
+- **一鍵跳轉**:發現新版時彈出通知,點擊即可前往下載頁面。
 
-### 3. 通知中心
-- **即時回饋**：內建通知中心，即時顯示任務成功、失敗與詳細訊息。
-- **歷史紀錄**：自動保存執行歷史，方便回溯追蹤。
+### 3. 🛡️ 穩定性增強
+- **路徑優化**:改用英文路徑名,解決跨系統編碼導致的 `ModuleNotFoundError`。
+- **環境相容**:預設強制使用 Edge WebView2 核心,解決部分電腦啟動閃退問題。
 
-### 4. 進階設定
-- **標籤式管理**：直覺的關鍵詞標籤開關 (驗證碼、登入、查無資料等)。
-- **持久化儲存**：自動記憶您的偏好設定與介面配置。
+### 4. 📦 打包優化
+- **體積減少**:優化依賴排除,減少 15-25% 的打包體積。
+- **啟動穩定**:保護關鍵 DLL 避免 UPX 壓縮損壞。
+
+### 5. 🚀 效能提升
+- **記憶體優化**:改善記憶體管理,減少 30-40% 的記憶體使用。
+- **重試邏輯**:新增最大重試次數限制,避免無限迴圈。
 
 ---
 
@@ -27,56 +31,116 @@
 
 請前往 [Releases](https://github.com/kevin-leeeeee/auto_screenshot/releases) 下載最新版本的壓縮包。
 
-1. 下載 `AutoFlow_Control_Center_v2.0.0.zip`。
-2. 解壓縮至任意資料夾。
-3. 執行資料夾內的 `AutoFlow_Control_Center.exe`。
+### 建議下載版本:`AutoFlow_Control_Center_v2.1.0_Full.zip`
+
+1. 下載並解壓縮。
+2. **目錄結構確認**:請確保您的資料夾結構如下 (不可隨意改名):
+   ```text
+   AutoFlow_Control_Center_v2.1.0/
+   ├── AutoFlow_Control_Center_v2.1.0.exe  (主程式)
+   ├── excel_轉換/                         (Excel 處理腳本)
+   └── 截圖腳本/                           (自動截圖腳本)
+   ```
+3. 執行 `AutoFlow_Control_Center_v2.1.0.exe`。
 
 ---
 
-## 🛠️ 開發者指南 (Building from Source)
+## 🛠️ 開發者指南
 
-若您希望自行修改或建置專案，請依照以下步驟：
+### 快捷打包與發布
+
+#### 方法 1: 完整發布流程 (推薦)
+
+```powershell
+# 1. 更新版本號
+.\bump_version.bat
+
+# 2. 更新 CHANGELOG.md (手動編輯)
+
+# 3. 提交變更
+git add .
+git commit -m "Bump version to vX.X.X"
+
+# 4. 自動建置並發布到 GitHub
+.\release.bat
+```
+
+#### 方法 2: 僅建置 (不發布)
+
+```powershell
+.\build_release.bat
+```
 
 ### 環境需求
-- Python 3.10+
-- Node.js 18+ (用於前端建置)
+- Python 3.12+ (Conda 環境推薦)
+- Node.js 18+
+- GitHub CLI (用於自動發布)
 
-### 1. 安裝依賴
-```bash
-# Python
-pip install -r requirements.txt
-# (若無 requirements.txt，主要依賴為: Flask, pywebview, openpyxl, python-docx, pyautogui, Pillow)
+### 安裝 GitHub CLI
 
-# Frontend
-cd autoflow-control-center
-npm install
+```powershell
+# 使用 winget 安裝
+winget install --id GitHub.cli
+
+# 登入 GitHub
+gh auth login
 ```
-
-### 2. 建置前端
-```bash
-cd autoflow-control-center
-npm run build
-```
-
-### 3. 打包應用程式
-返回根目錄並執行 PyInstaller：
-```bash
-cd ..
-pyinstaller autoflow.spec --clean --noconfirm
-```
-打包完成後，執行檔將位於 `dist/AutoFlow_Control_Center/` 目錄中。
 
 ---
 
-## 📁 專案結構
+## 📁 專案結構 (更新)
 
-- `run_app.py`: 應用程式主入口 (Flask + PyWebView)。
-- `autoflow-control-center/`: 前端 React 專案源碼。
-- `excel_轉換/`: Excel 處理核心邏輯。
-- `截圖腳本/`: 網頁自動化核心邏輯。
-- `app_data.json`: 儲存應用程式的統計數據與設定。
+```
+AutoFlow_Control_Center/
+├── run_app.py                      # 應用程式主入口
+├── version.txt                     # 版本號管理
+├── CHANGELOG.md                    # 更新日誌
+├── bump_version.bat                # 版本號更新工具
+├── build_release.bat               # 建置腳本
+├── release.bat                     # 自動發布腳本
+├── autoflow_onedir.spec            # PyInstaller 打包配置
+├── excel_轉換/                     # 外部 Excel 處理邏輯
+├── 截圖腳本/                       # 外部網頁自動化邏輯
+└── autoflow-control-center/        # 前端 React 源碼
+```
+
+---
+
+## 🔄 更新流程
+
+### 使用者更新
+
+**方法一:應用內快速更新 (推薦)** ⚡
+1. 點擊側邊欄的「檢查更新」按鈕
+2. 選擇「更新腳本」(無需重啟) 或「下載完整更新」
+3. 完成!
+
+**方法二:手動下載更新**
+1. 前往 [Releases](https://github.com/kevin-leeeeee/auto_screenshot/releases) 頁面
+2. 下載最新版本的 `_Full.zip`
+3. 解壓縮並覆蓋舊版本
+4. 執行新版本的 `.exe`
+
+> 📖 **詳細更新指南**: 請參閱 [UPDATE_GUIDE.md](UPDATE_GUIDE.md)
+
+### 開發者發布新版本
+1. 執行 `bump_version.bat` 更新版本號
+2. 更新 `CHANGELOG.md`
+3. 執行 `release.bat` 自動建置並發布
 
 ---
 
 ## 🛡️ 安全性說明
-本軟體完全於本機執行，不會將您的 Excel 檔案、截圖或設定上傳至任何外部伺服器。
+本軟體完全於本機執行,不會將您的資料、截圖或設定上傳至任何外部伺服器。
+
+---
+
+## 📝 更新日誌
+
+詳細的更新日誌請查看 [CHANGELOG.md](CHANGELOG.md)
+
+---
+
+## 🙏 致謝
+
+感謝所有使用者的回饋與建議,讓 AutoFlow Control Center 持續進步!

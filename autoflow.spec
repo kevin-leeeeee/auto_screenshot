@@ -11,7 +11,7 @@ a = Analysis(
         ('excel_轉換', 'excel_轉換'),
         ('截圖腳本', '截圖腳本'),
     ],
-    hiddenimports=['engineio.async_drivers.threading'],
+    hiddenimports=['engineio.async_drivers.threading', 'webview', 'clr', 'System', 'System.Windows.Forms', 'flask', 'openpyxl', 'docx'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

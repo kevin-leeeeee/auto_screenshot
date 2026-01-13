@@ -13,11 +13,31 @@ const KeywordSection: React.FC<{
   keywords: string[];
   onRemove: (index: number) => void;
   onAdd: (val: string) => void;
-}> = ({ title, keywords, onRemove, onAdd }) => {
+  pauseEnabled?: boolean;
+  onPauseToggle?: (enabled: boolean) => void;
+}> = ({ title, keywords, onRemove, onAdd, pauseEnabled, onPauseToggle }) => {
   const [val, setVal] = useState('');
   return (
     <div className="space-y-2">
-      <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{title}</label>
+      <div className="flex items-center justify-between">
+        <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{title}</label>
+        {onPauseToggle && (
+          <button
+            onClick={() => onPauseToggle(!pauseEnabled)}
+            className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${pauseEnabled
+              ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+              : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-500'
+              }`}
+          >
+            <span className="material-symbols-outlined text-[16px]">
+              {pauseEnabled ? 'pause_circle' : 'play_circle'}
+            </span>
+            <span className="text-[10px] font-black uppercase tracking-wider">
+              {pauseEnabled ? '偵測到時暫停' : '偵測到時繼續'}
+            </span>
+          </button>
+        )}
+      </div>
       <div className="flex flex-wrap gap-2 p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg min-h-[46px]">
         {keywords.map((kw, i) => (
           <span key={i} className="inline-flex items-center gap-1 px-2 py-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded text-xs font-medium text-slate-600 dark:text-slate-300 shadow-sm">
@@ -48,12 +68,36 @@ const KeywordSection: React.FC<{
 const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ config, onClose, onSave }) => {
   const [formData, setFormData] = useState<AutomationConfig>(config);
   const [newKeyword, setNewKeyword] = useState('');
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
 
   const addKeyword = () => {
     if (newKeyword.trim()) {
-      setFormData({ ...formData, keywords: [...formData.keywords, newKeyword.trim()] });
+      if (!formData.keywords.includes(newKeyword.trim())) {
+        setFormData({ ...formData, keywords: [...formData.keywords, newKeyword.trim()] });
+      }
       setNewKeyword('');
     }
+  };
+
+  const onDragStart = (idx: number) => {
+    setDraggedIdx(idx);
+  };
+
+  const onDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    if (draggedIdx === null || draggedIdx === idx) return;
+
+    const newKeywords = [...formData.keywords];
+    const draggedItem = newKeywords[draggedIdx];
+    newKeywords.splice(draggedIdx, 1);
+    newKeywords.splice(idx, 0, draggedItem);
+
+    setFormData({ ...formData, keywords: newKeywords });
+    setDraggedIdx(idx);
+  };
+
+  const onDragEnd = () => {
+    setDraggedIdx(null);
   };
 
   const removeKeyword = (index: number, field: keyof AutomationConfig = 'keywords') => {
@@ -68,6 +112,54 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ config, onClose
       // @ts-ignore
       setFormData({ ...formData, [field]: [...formData[field], value.trim()] });
     }
+  };
+
+  const getCategoryColor = (name: string) => {
+    // 使用新的標籤名稱來尋找暫停狀態 (相容舊名)
+    const key = name === '驗證碼' ? '拼圖與人機驗證' : (name === '不存在' ? '查無資料' : name);
+    const isPaused = formData.categoryPause?.[key];
+    if (isPaused) {
+      return 'bg-amber-500 border-amber-600 text-white ring-2 ring-amber-500/20';
+    }
+    return 'bg-blue-600 border-blue-700 text-white';
+  };
+
+  const addCustomKeyword = (category: string, value: string) => {
+    if (value.trim()) {
+      const currentCustom = formData.customCategories || {};
+      const currentList = currentCustom[category] || [];
+      setFormData({
+        ...formData,
+        customCategories: {
+          ...currentCustom,
+          [category]: [...currentList, value.trim()]
+        }
+      });
+    }
+  };
+
+  const removeCustomKeyword = (category: string, index: number) => {
+    const currentCustom = formData.customCategories || {};
+    const currentList = [...(currentCustom[category] || [])];
+    currentList.splice(index, 1);
+    setFormData({
+      ...formData,
+      customCategories: {
+        ...currentCustom,
+        [category]: currentList
+      }
+    });
+  };
+
+  const togglePause = (category: string, enabled: boolean) => {
+    const currentPause = formData.categoryPause || {};
+    setFormData({
+      ...formData,
+      categoryPause: {
+        ...currentPause,
+        [category]: enabled
+      }
+    });
   };
 
   const handleSave = () => {
@@ -390,17 +482,24 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ config, onClose
 
               <div className="space-y-2 pl-1">
                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">截圖範圍模式</label>
-                <div className="relative">
+                <div className="relative group">
                   <select
-                    style={{ appearance: 'none', WebkitAppearance: 'none' }}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-blue-600 outline-none pr-10"
+                    style={{
+                      appearance: 'none',
+                      WebkitAppearance: 'none',
+                      MozAppearance: 'none',
+                      backgroundImage: 'none'
+                    }}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-blue-600 outline-none pr-12 cursor-pointer transition-all appearance-none"
                     value={formData.range}
                     onChange={(e) => setFormData({ ...formData, range: e.target.value as any })}
                   >
                     <option value="viewport">僅限可視視窗 (Viewport)</option>
                     <option value="fullscreen">整頁完整截圖 (Full Page)</option>
                   </select>
-                  <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 select-none">unfold_more</span>
+                  <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-blue-600 transition-colors">
+                    expand_more
+                  </span>
                 </div>
               </div>
             </div>
@@ -435,22 +534,39 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ config, onClose
                 <div className="space-y-4 pt-2">
                   <div className="space-y-2 pl-1">
                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">啟用偵測功能 (類別開關)</label>
-                    <div className="flex flex-wrap gap-2 p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl min-h-[46px]">
+                    <div className="flex flex-wrap gap-2 p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl min-h-[58px] transition-all">
                       {formData.keywords.map((kw, i) => (
-                        <span key={i} className={`inline-flex items-center gap-1.5 px-2.5 py-1 border rounded-lg text-xs font-bold shadow-sm transition-all cursor-default select-none
-                          ${['驗證碼', '不存在', 'BSMI', '登入'].includes(kw)
-                            ? 'bg-blue-600 border-blue-600 text-white'
-                            : 'bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-200'}`}
+                        <div
+                          key={i}
+                          draggable
+                          onDragStart={() => onDragStart(i)}
+                          onDragOver={(e) => onDragOver(e, i)}
+                          onDragEnd={onDragEnd}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-xs font-bold shadow-sm transition-all cursor-move select-none animate-in zoom-in-95
+                            ${draggedIdx === i ? 'opacity-30 scale-95 border-dashed bg-slate-100 border-slate-300 text-slate-400' : getCategoryColor(kw)}
+                          `}
+                          title="拖曳以調整優先順序"
                         >
-                          {kw}
-                          <button onClick={() => removeKeyword(i)} className={`${['驗證碼', '不存在', 'BSMI', '登入'].includes(kw) ? 'text-blue-200 hover:text-white' : 'text-slate-400 hover:text-red-500'} transition-colors`}>
+                          <span className="material-symbols-outlined text-[14px] opacity-70">drag_indicator</span>
+                          <span className="flex items-center gap-1">
+                            <span className="opacity-60 text-[10px]">{i + 1}.</span>
+                            {kw}
+                          </span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeKeyword(i);
+                            }}
+                            className="hover:bg-white/20 p-0.5 rounded-full transition-colors ml-0.5"
+                          >
                             <span className="material-symbols-outlined text-[14px]">close</span>
                           </button>
-                        </span>
+                        </div>
                       ))}
-                      <div className="relative group">
+
+                      <div className="relative group flex items-center">
                         <input
-                          className="w-24 bg-transparent border-none p-0 text-xs font-bold focus:ring-0 placeholder:text-slate-400 dark:text-white"
+                          className="w-24 bg-transparent border-none p-2 text-xs font-bold focus:ring-0 placeholder:text-slate-400 dark:text-white"
                           placeholder="輸入類別..."
                           type="text"
                           value={newKeyword}
@@ -461,7 +577,7 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ config, onClose
                         <div className="absolute left-0 top-full mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-100 dark:border-slate-700 p-2 hidden group-focus-within:block z-20">
                           <p className="text-[10px] font-bold text-slate-400 mb-2 px-1">建議啟用類別:</p>
                           <div className="flex flex-wrap gap-1">
-                            {['驗證碼', '不存在', 'BSMI', '登入'].filter(k => !formData.keywords.includes(k)).map(tag => (
+                            {['拼圖與人機驗證', '查無資料', 'BSMI', '登入'].filter(k => !formData.keywords.includes(k)).map(tag => (
                               <button
                                 key={tag}
                                 onClick={() => {
@@ -482,49 +598,78 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ config, onClose
                   </div>
 
                   <div className="grid grid-cols-1 gap-6 pt-2">
-                    {formData.keywords.includes('驗證碼') && (
-                      <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                        <KeywordSection
-                          title="驗證碼攔截 (Captcha)"
-                          keywords={formData.captchaKeywords}
-                          onRemove={(i) => removeKeyword(i, 'captchaKeywords')}
-                          onAdd={(v) => addKeywordToField('captchaKeywords', v)}
-                        />
-                      </div>
-                    )}
+                    {formData.keywords.map((kw) => {
+                      if (kw === '拼圖與人機驗證' || kw === '驗證碼') {
+                        return (
+                          <div key={kw} className="animate-in fade-in slide-in-from-top-2 duration-300">
+                            <KeywordSection
+                              title="拼圖與人機驗證 (Captcha)"
+                              keywords={formData.captchaKeywords}
+                              onRemove={(i) => removeKeyword(i, 'captchaKeywords')}
+                              onAdd={(v) => addKeywordToField('captchaKeywords', v)}
+                              pauseEnabled={formData.categoryPause?.['拼圖與人機驗證']}
+                              onPauseToggle={(v) => togglePause('拼圖與人機驗證', v)}
+                            />
+                          </div>
+                        );
+                      }
+                      if (kw === '登入') {
+                        return (
+                          <div key={kw} className="animate-in fade-in slide-in-from-top-2 duration-300">
+                            <KeywordSection
+                              title="登入頁偵測 (Login)"
+                              keywords={formData.loginKeywords}
+                              onRemove={(i) => removeKeyword(i, 'loginKeywords')}
+                              onAdd={(v) => addKeywordToField('loginKeywords', v)}
+                              pauseEnabled={formData.categoryPause?.['登入']}
+                              onPauseToggle={(v) => togglePause('登入', v)}
+                            />
+                          </div>
+                        );
+                      }
+                      if (kw === '查無資料' || kw === '不存在') {
+                        return (
+                          <div key={kw} className="animate-in fade-in slide-in-from-top-2 duration-300">
+                            <KeywordSection
+                              title="查無資料偵測 (Not Found)"
+                              keywords={formData.notFoundKeywords}
+                              onRemove={(i) => removeKeyword(i, 'notFoundKeywords')}
+                              onAdd={(v) => addKeywordToField('notFoundKeywords', v)}
+                              pauseEnabled={formData.categoryPause?.['查無資料']}
+                              onPauseToggle={(v) => togglePause('查無資料', v)}
+                            />
+                          </div>
+                        );
+                      }
+                      if (kw === 'BSMI') {
+                        return (
+                          <div key={kw} className="animate-in fade-in slide-in-from-top-2 duration-300">
+                            <KeywordSection
+                              title="BSMI 證書偵測"
+                              keywords={formData.bsmiKeywords}
+                              onRemove={(i) => removeKeyword(i, 'bsmiKeywords')}
+                              onAdd={(v) => addKeywordToField('bsmiKeywords', v)}
+                              pauseEnabled={formData.categoryPause?.['BSMI']}
+                              onPauseToggle={(v) => togglePause('BSMI', v)}
+                            />
+                          </div>
+                        );
+                      }
 
-                    {formData.keywords.includes('登入') && (
-                      <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                        <KeywordSection
-                          title="登入頁偵測 (Login)"
-                          keywords={formData.loginKeywords}
-                          onRemove={(i) => removeKeyword(i, 'loginKeywords')}
-                          onAdd={(v) => addKeywordToField('loginKeywords', v)}
-                        />
-                      </div>
-                    )}
-
-                    {formData.keywords.includes('不存在') && (
-                      <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                        <KeywordSection
-                          title="查無資料偵測 (Not Found)"
-                          keywords={formData.notFoundKeywords}
-                          onRemove={(i) => removeKeyword(i, 'notFoundKeywords')}
-                          onAdd={(v) => addKeywordToField('notFoundKeywords', v)}
-                        />
-                      </div>
-                    )}
-
-                    {formData.keywords.includes('BSMI') && (
-                      <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                        <KeywordSection
-                          title="BSMI 證書偵測"
-                          keywords={formData.bsmiKeywords}
-                          onRemove={(i) => removeKeyword(i, 'bsmiKeywords')}
-                          onAdd={(v) => addKeywordToField('bsmiKeywords', v)}
-                        />
-                      </div>
-                    )}
+                      // Custom category
+                      return (
+                        <div key={kw} className="animate-in fade-in slide-in-from-top-2 duration-300">
+                          <KeywordSection
+                            title={`自訂類別: ${kw}`}
+                            keywords={formData.customCategories?.[kw] || []}
+                            onRemove={(idx) => removeCustomKeyword(kw, idx)}
+                            onAdd={(v) => addCustomKeyword(kw, v)}
+                            pauseEnabled={formData.categoryPause?.[kw]}
+                            onPauseToggle={(v) => togglePause(kw, v)}
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

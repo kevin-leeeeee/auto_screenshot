@@ -21,14 +21,14 @@ const Settings: React.FC<SettingsProps> = ({ displaySettings, setDisplaySettings
   return (
     <div
       style={{ padding: '32px', gap: '24px' }}
-      className="max-w-[1200px] mx-auto overflow-hidden flex flex-col h-full"
+      className="max-w-[1200px] mx-auto flex flex-col min-h-full"
     >
       <div className="flex-shrink-0" style={{ marginBottom: '24px' }}>
         <h2 className="text-3xl font-black tracking-tight mb-1 dark:text-white">系統設定</h2>
         <p className="text-slate-500 dark:text-slate-400">管理您的應用程式偏好與視覺呈現效果。</p>
       </div>
 
-      <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden" style={{ gap: '32px' }}>
+      <div className="flex-1 flex flex-col md:flex-row min-h-0" style={{ gap: '32px' }}>
         {/* 左側導航 */}
         <div style={{ width: '280px', gap: '8px' }} className="flex flex-col shrink-0">
           <button
@@ -46,14 +46,14 @@ const Settings: React.FC<SettingsProps> = ({ displaySettings, setDisplaySettings
         </div>
 
         {/* 右側內容區塊 */}
-        <div className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden flex flex-col transition-colors duration-300">
+        <div className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col transition-colors duration-300">
           <div style={{ padding: '16px 32px' }} className="border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
             <h3 className="text-xl font-black mb-1 dark:text-white">個人化顯示</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400">調整字體大小以符合您的閱讀習慣，我們特別為長輩提供了特大尺寸選項。</p>
           </div>
 
           <div
-            className="flex-1 overflow-y-auto no-scrollbar flex flex-col"
+            className="flex-1 flex flex-col"
             style={{ padding: '24px 32px', gap: '32px' }}
           >
             {/* 主題選擇區 */}
@@ -101,6 +101,12 @@ const Settings: React.FC<SettingsProps> = ({ displaySettings, setDisplaySettings
                 <label className="text-sm font-bold text-slate-700 dark:text-slate-300">系統字體大小</label>
                 <div className="relative">
                   <select
+                    style={{
+                      appearance: 'none',
+                      WebkitAppearance: 'none',
+                      MozAppearance: 'none',
+                      backgroundImage: 'none'
+                    }}
                     className="w-full appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
                     value={displaySettings.fontSize}
                     onChange={(e) => setDisplaySettings({ ...displaySettings, fontSize: parseInt(e.target.value) })}

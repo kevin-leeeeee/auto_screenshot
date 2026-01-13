@@ -26,3 +26,19 @@ output/
 release_assets/
 *.zip
 *.exe
+
+# 前端建構產出與臨時檔案
+autoflow-control-center/dist/
+autoflow-control-center/build_log.txt
+autoflow-control-center/errors.txt
+autoflow-control-center/node_modules/
+
+# 測試檔案與臨時腳本
+*_test.txt
+inspect_*.py
+
+# Excel 轉換輸出
+excel_轉換/output/
+
+# 應用程式資料
+app_data.json

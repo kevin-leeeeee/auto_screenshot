@@ -23,6 +23,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [outputFiles, setOutputFiles] = useState<{ name: string, path: string }[]>([]);
   const [outputFolder, setOutputFolder] = useState<string | null>(null);
+  const [dateRange, setDateRange] = useState<{ start: string, end: string }>({ start: '', end: '' });
   const [isStartingTask, setIsStartingTask] = useState(false);
   const [defaultOutputDir, setDefaultOutputDir] = useState<string>('');
   const [isOutputListCollapsed, setIsOutputListCollapsed] = useState(false);
@@ -30,7 +31,6 @@ const Dashboard: React.FC<DashboardProps> = ({
   // Screenshot State
   const [screenshotStatus, setScreenshotStatus] = useState<{ processed: number, total: number, status: string }>({ processed: 0, total: 0, status: 'idle' });
   const [appState, setAppState] = useState<any>({ stats: {}, history: [] });
-  const screenshotFileInputRef = useRef<HTMLInputElement>(null);
 
   const handleMoveToScreenshot = (path: string, name: string, urlCount?: number) => {
     onUpdateConfig({
@@ -131,11 +131,11 @@ const Dashboard: React.FC<DashboardProps> = ({
     if (window.pywebview && window.pywebview.api) {
       try {
         // @ts-ignore
-        const res = await window.pywebview.api.run_excel_convert();
+        const res = await window.pywebview.api.run_excel_convert(dateRange.start, dateRange.end);
         if (res.status === 'success') {
           setOutputFiles(res.output_files || []);
           setOutputFolder(res.output_folder);
-          alert("轉換完成！");
+          alert(res.message);
         } else {
           alert(res.message);
         }
@@ -314,9 +314,6 @@ const Dashboard: React.FC<DashboardProps> = ({
     });
   };
 
-  const handleScreenshotUploadClick = () => {
-    handleScreenshotFileSelect();
-  };
   const handleRemoveFile = (e: React.MouseEvent) => {
     e.stopPropagation();
     setUploadedFile(null);
@@ -326,6 +323,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   return (
     <div className="p-8 space-y-8 max-w-[1400px] mx-auto transition-all">
+      {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <h2 className="text-3xl font-black tracking-tight mb-1 dark:text-white">工作自動化控制中心</h2>
@@ -347,7 +345,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             <div className="w-px h-8 bg-slate-100 dark:bg-slate-800"></div>
             <div className="flex flex-col items-center px-4 py-2">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-0.5">成功率</span>
-              <span className="text-lg font-black text-blue-600 leading-none">{appState.stats.success_rate || "100%"}</span>
+              <span className="text-lg font-black text-blue-600 leading-none">{appState.stats.total_conversions > 0 ? (appState.stats.success_rate || "100%") : "-"}</span>
             </div>
             <div className="w-px h-8 bg-slate-100 dark:bg-slate-800"></div>
             <div className="flex flex-col items-center px-4 py-2">
@@ -358,210 +356,246 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Card: Excel to TXT */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col gap-6 hover:shadow-md transition-all xl:col-span-1">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-                <span className="material-symbols-outlined">table_chart</span>
-              </div>
-              <div>
-                <h3 className="font-bold text-slate-800 dark:text-white">Excel 轉 TXT</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">拖放式檔案處理</p>
-              </div>
-            </div>
-            <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${uploadedFile ? 'bg-blue-600/10 text-blue-600' : 'bg-emerald-500/10 text-emerald-500'}`}>
-              {uploadedFile ? '已上傳' : '就緒'}
-            </span>
-          </div>
+      <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+        {/* Column 1: Excel & Date Filter */}
+        <div className="flex flex-col gap-6 xl:col-span-2">
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col gap-6 hover:shadow-md transition-all h-full">
 
-          <input
-            type="file"
-            ref={fileInputRef}
-            className="hidden"
-            accept=".xlsx,.xls,.csv"
-            onChange={handleFileChange}
-          />
+            {/* 1. Excel Selection */}
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="min-w-[40px] min-h-[40px] rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center p-2">
+                    <span className="material-symbols-outlined">table_chart</span>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-800 dark:text-white">Excel 轉 TXT</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">拖放式檔案處理</p>
+                  </div>
+                </div>
+                <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${uploadedFile ? 'bg-blue-600/10 text-blue-600' : 'bg-emerald-500/10 text-emerald-500'}`}>
+                  {uploadedFile ? '已上傳' : '就緒'}
+                </span>
+              </div>
 
-          {uploadedFile ? (
-            <div
-              className="flex flex-col items-center justify-center gap-3 py-10 px-6 rounded-xl border-2 border-emerald-500/30 bg-emerald-50/20 dark:bg-emerald-500/5 transition-all group relative"
-            >
-              <div className="size-14 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                <span className="material-symbols-outlined text-3xl">description</span>
-              </div>
-              <div className="text-center w-full px-2">
-                <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{uploadedFile.name}</p>
-                <p className="text-[10px] text-slate-400 mt-1 uppercase">{(uploadedFile.size / 1024).toFixed(1)} KB • Excel 試算表</p>
-              </div>
-              <div className="flex gap-2 mt-2">
-                <button
-                  onClick={handleRemoveFile}
-                  className="px-4 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all shadow-sm"
-                >
-                  移除檔案
-                </button>
-                <button
-                  onClick={handleConvert}
-                  className="px-4 py-1.5 bg-emerald-500 text-white rounded-lg text-xs font-bold hover:bg-emerald-600 transition-all shadow-md"
-                >
-                  開始轉換
-                </button>
-                <button
-                  onClick={handleUploadClick}
-                  className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-all shadow-md"
-                >
-                  更換
-                </button>
-              </div>
+              <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx,.xls,.csv" onChange={handleFileChange} />
+
+              {uploadedFile ? (
+                <div className="flex flex-col items-center justify-center gap-3 py-6 px-6 rounded-xl border-2 border-emerald-500/30 bg-emerald-50/20 dark:bg-emerald-500/5 transition-all group relative">
+                  <div className="size-10 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                    <span className="material-symbols-outlined text-2xl">description</span>
+                  </div>
+                  <div className="text-center w-full px-2">
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{uploadedFile.name}</p>
+                    <p className="text-[10px] text-slate-400 mt-1 uppercase">{(uploadedFile.size / 1024).toFixed(1)} KB • Excel 試算表</p>
+                  </div>
+                  <button onClick={handleRemoveFile} className="px-3 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all shadow-sm">
+                    移除檔案
+                  </button>
+                </div>
+              ) : (
+                <div onClick={handleUploadClick} className="flex flex-col items-center justify-center gap-2 py-6 px-6 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 group cursor-pointer hover:border-blue-600/50 transition-all">
+                  <div className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:text-blue-600 group-hover:bg-blue-600/10 transition-colors">
+                    <span className="material-symbols-outlined text-2xl">upload_file</span>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-bold dark:text-slate-200">選擇 Excel 檔案</p>
+                    <p className="text-[10px] text-slate-400 mt-1">支援 .xlsx, .xls</p>
+                  </div>
+                </div>
+              )}
             </div>
-          ) : (
-            <div
-              onClick={handleUploadClick}
-              className="flex flex-col items-center justify-center gap-4 py-10 px-6 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 group cursor-pointer hover:border-blue-600/50 transition-all"
-            >
-              <div className="size-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:text-blue-600 group-hover:bg-blue-600/10 transition-colors">
-                <span className="material-symbols-outlined text-3xl">upload_file</span>
+
+            <div className="w-full h-px bg-slate-100 dark:bg-slate-800 my-1"></div>
+
+            {/* 2. Date Filter */}
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-3">
+                <div className="min-w-[32px] min-h-[32px] rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center p-1.5">
+                  <span className="material-symbols-outlined text-lg">date_range</span>
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800 dark:text-white text-sm">日期篩選 (選填)</h3>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400">僅轉換此區間內的資料</p>
+                </div>
               </div>
-              <div className="text-center">
-                <p className="text-sm font-bold dark:text-slate-200">選擇 Excel 檔案</p>
-                <p className="text-xs text-slate-400 max-w-[200px] mt-1">點擊或拖放 Excel (.xlsx, .xls) 或 CSV 檔案</p>
+
+              <div className="grid grid-cols-2 gap-3">
+                <style>{`
+                  /* 1. 強制全域設定: 淺色模式下所有日期相關元件一律黑色 */
+                  input[type="date"],
+                  input[type="date"]::-webkit-datetime-edit,
+                  input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+                  input[type="date"]::-webkit-datetime-edit-text,
+                  input[type="date"]::-webkit-datetime-edit-year-field,
+                  input[type="date"]::-webkit-datetime-edit-month-field,
+                  input[type="date"]::-webkit-datetime-edit-day-field {
+                    color: black !important;
+                  }
+
+                  /* 2. 選取狀態（藍色背景）下也強制黑色 */
+                  input[type="date"]::-webkit-datetime-edit-year-field:focus,
+                  input[type="date"]::-webkit-datetime-edit-month-field:focus,
+                  input[type="date"]::-webkit-datetime-edit-day-field:focus {
+                    background-color: #3b82f6 !important;
+                    color: black !important;
+                  }
+
+                  /* 3. 深色模式覆寫: 全部白色 */
+                  .dark input[type="date"],
+                  .dark input[type="date"]::-webkit-datetime-edit,
+                  .dark input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+                  .dark input[type="date"]::-webkit-datetime-edit-text,
+                  .dark input[type="date"]::-webkit-datetime-edit-year-field,
+                  .dark input[type="date"]::-webkit-datetime-edit-month-field,
+                  .dark input[type="date"]::-webkit-datetime-edit-day-field {
+                    color: white !important;
+                  }
+                  
+                  /* 4. 深色模式選取狀態: 白色 */
+                  .dark input[type="date"]::-webkit-datetime-edit-year-field:focus,
+                  .dark input[type="date"]::-webkit-datetime-edit-month-field:focus,
+                  .dark input[type="date"]::-webkit-datetime-edit-day-field:focus {
+                     color: white !important;
+                  }
+
+                  /* 5. 圖示濾鏡 */
+                  input[type="date"]::-webkit-calendar-picker-indicator {
+                    cursor: pointer;
+                    opacity: 0.6;
+                    filter: invert(0) !important; /* 強制黑色圖示 */
+                  }
+                  .dark input[type="date"]::-webkit-calendar-picker-indicator {
+                    filter: invert(1) !important; /* 強制白色圖示 */
+                  }
+                `}</style>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">開始日期</label>
+                  <input
+                    type="date"
+                    className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all relative"
+                    value={dateRange.start}
+                    onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">結束日期</label>
+                  <input
+                    type="date"
+                    className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all relative"
+                    value={dateRange.end}
+                    onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                  />
+                </div>
               </div>
-              <button className="mt-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold hover:shadow-md transition-all dark:text-slate-300">
-                瀏覽檔案
+
+              {dateRange.start && dateRange.end && new Date(dateRange.start) > new Date(dateRange.end) && (
+                <div className="mx-1 flex items-center gap-1.5 text-red-500 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <span className="material-symbols-outlined text-sm font-bold">error</span>
+                  <p className="text-[10px] font-bold uppercase tracking-tight">開始日期不能晚於結束日期</p>
+                </div>
+              )}
+
+              <button
+                onClick={handleConvert}
+                disabled={!uploadedFile || (!!dateRange.start && !!dateRange.end && new Date(dateRange.start) > new Date(dateRange.end))}
+                className="w-full py-3 bg-emerald-500 text-white rounded-lg text-sm font-bold hover:bg-emerald-600 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                開始轉換
               </button>
             </div>
-          )}
 
-          <div className="flex flex-col text-xs font-medium text-slate-500 border-t border-slate-100 dark:border-slate-800 pt-4 gap-2">
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-sm text-slate-400">history</span>
-                <span className="font-bold">輸出清單 {outputFiles.length > 0 && `(${outputFiles.length})`}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                {outputFolder && (
-                  <button
-                    onClick={() => {
-                      // @ts-ignore
-                      if (window.pywebview && window.pywebview.api) window.pywebview.api.open_folder(outputFolder);
-                    }}
-                    className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center justify-center text-slate-400 hover:text-blue-600 transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-sm">folder_open</span>
-                  </button>
-                )}
+            <div className="w-full h-px bg-slate-100 dark:bg-slate-800 my-1"></div>
+
+            {/* 3. Output List */}
+            <div className="flex flex-col gap-2 flex-1 min-h-[100px]">
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-sm text-slate-400">history</span>
+                  <span className="font-bold text-xs">輸出清單 {outputFiles.length > 0 && `(${outputFiles.length})`}</span>
+                </div>
                 <button
                   onClick={() => setIsOutputListCollapsed(!isOutputListCollapsed)}
                   className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center justify-center text-slate-400 transition-colors"
-                  title={isOutputListCollapsed ? '展開' : '收合'}
                 >
-                  <span className="material-symbols-outlined text-sm">
-                    {isOutputListCollapsed ? 'expand_more' : 'expand_less'}
-                  </span>
+                  <span className="material-symbols-outlined text-sm">{isOutputListCollapsed ? 'expand_more' : 'expand_less'}</span>
                 </button>
               </div>
-            </div>
 
-            {!isOutputListCollapsed && (
-              <div className="max-h-40 overflow-y-auto space-y-2 pr-1 custom-scrollbar animate-in fade-in slide-in-from-top-1 duration-200">
-                {outputFiles.length > 0 ? (
-                  outputFiles.map((file, idx) => (
+              {!isOutputListCollapsed && (
+                <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar max-h-[200px]">
+                  {outputFiles.length > 0 ? outputFiles.map((file, idx) => (
                     <div key={idx} className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg group">
                       <span
-                        className="truncate text-blue-600 font-medium cursor-pointer hover:underline max-w-[150px]"
-                        title={file.name}
-                        onClick={() => {
-                          // @ts-ignore
-                          if (window.pywebview && window.pywebview.api) window.pywebview.api.open_file(file.path);
-                        }}
+                        className="truncate text-blue-600 font-medium cursor-pointer hover:underline max-w-[200px] text-xs"
+                        onClick={() => { if (window.pywebview?.api) window.pywebview.api.open_file(file.path); }}
                       >
                         {file.name}
                       </span>
                       <button
                         onClick={() => handleMoveToScreenshot(file.path, file.name, (file as any).urlCount)}
-                        className="opacity-0 group-hover:opacity-100 px-2 py-0.5 bg-blue-600 text-white rounded text-[10px] font-bold hover:bg-blue-700 transition-all whitespace-nowrap"
+                        className="opacity-0 group-hover:opacity-100 px-2 py-0.5 bg-blue-600 text-white rounded text-[10px] font-bold"
                       >
                         下一步
                       </button>
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-4 text-slate-400 animate-pulse italic">
-                    {uploadedFile ? '正在等待轉換...' : '暫無待處理檔案'}
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="flex justify-between items-center text-[10px] text-slate-400 mt-1 uppercase tracking-wider">
-              <span>{outputFiles.length > 0 ? '處理完成' : (uploadedFile ? '準備就緒' : '--')}</span>
-              {outputFiles.length > 0 && <span>可捲動查看更多</span>}
+                  )) : (
+                    <div className="text-center py-4 text-slate-400 italic text-xs">
+                      {uploadedFile ? '正在等待轉換...' : '暫無紀錄'}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-
-
-
-
-        {/* Card: 自動截圖 (Merged Control & Config) */}
-        <div id="screenshot-card" className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col gap-6 hover:shadow-md transition-all xl:col-span-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-lg bg-blue-600/10 text-blue-600 flex items-center justify-center">
-                <span className="material-symbols-outlined">language</span>
+        {/* Column 2: Auto Screenshot */}
+        <div id="screenshot-card" className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col gap-6 hover:shadow-md transition-all xl:col-span-3">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="min-w-[40px] min-h-[40px] rounded-lg bg-blue-600/10 text-blue-600 flex items-center justify-center p-2">
+                  <span className="material-symbols-outlined">language</span>
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800 dark:text-white">自動截圖</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">網頁自動化任務</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-bold text-slate-800 dark:text-white">自動截圖</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">網頁自動化任務</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={onOpenConfig}
-                className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-blue-600 transition-colors"
-                title="進階設定"
-              >
+              <button onClick={onOpenConfig} className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-blue-600 transition-colors">
                 <span className="material-symbols-outlined text-sm">settings</span>
               </button>
-              <div className="flex gap-1.5">
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 bg-slate-50/50 dark:bg-slate-800/30 p-2 rounded-xl border border-slate-100 dark:border-slate-800/50">
+              <div className="flex flex-1 gap-2">
                 <button
                   onClick={handleStartScreenshot}
-                  disabled={!config.inputFiles || config.inputFiles.length === 0 || isStartingTask}
-                  className="px-4 py-1.5 rounded-lg bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wider hover:bg-emerald-700 transition-all disabled:opacity-50 disabled:hover:scale-100 active:scale-95 shadow-lg shadow-emerald-500/20 flex items-center gap-2"
+                  disabled={!config.inputFiles?.length || isStartingTask}
+                  className="flex-1 px-4 py-2.5 rounded-lg bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wider hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"
                 >
-                  {isStartingTask ? (
-                    <span className="material-symbols-outlined animate-spin text-sm">sync</span>
-                  ) : (
-                    <span className="material-symbols-outlined text-sm">play_arrow</span>
-                  )}
+                  <span className="material-symbols-outlined text-sm">{isStartingTask ? 'sync' : 'play_arrow'}</span>
                   {isStartingTask ? '啟動中...' : '啟動任務'}
                 </button>
                 <button
                   onClick={handleAddToQueue}
-                  disabled={!config.inputFiles || config.inputFiles.length === 0}
-                  className="px-3 py-1.5 rounded-lg bg-slate-900 dark:bg-white dark:text-slate-900 text-white text-[10px] font-black uppercase tracking-wider hover:bg-slate-800 transition-all disabled:opacity-50 disabled:hover:scale-100 active:scale-95"
+                  disabled={!config.inputFiles?.length}
+                  className="px-4 py-2.5 rounded-lg bg-slate-900 dark:bg-white dark:text-slate-900 text-white text-[10px] font-black uppercase tracking-wider hover:bg-slate-800 transition-all"
                 >
                   排定任務
                 </button>
-                <button
-                  onClick={handleResetAll}
-                  className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 text-[10px] font-black uppercase tracking-wider hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-sm">restart_alt</span>
-                    清除內容
-                  </span>
+              </div>
+              <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
+              <div className="flex gap-2">
+                <button onClick={handleResetAll} className="px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 text-[10px] font-black uppercase tracking-wider flex items-center gap-2">
+                  <span className="material-symbols-outlined text-sm">restart_alt</span>
+                  清除內容
                 </button>
                 <button
                   onClick={handleStopScreenshot}
                   disabled={screenshotStatus.status !== 'running'}
-                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 ${screenshotStatus.status === 'running'
-                    ? 'bg-red-600/10 text-red-600 hover:bg-red-600 hover:text-white'
-                    : 'bg-slate-100 text-slate-300 cursor-not-allowed'
-                    }`}
+                  className={`px-4 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-wider ${screenshotStatus.status === 'running' ? 'bg-red-600/10 text-red-600 hover:bg-red-600 hover:text-white' : 'bg-slate-100 text-slate-300'}`}
                 >
                   停止
                 </button>
@@ -569,152 +603,72 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
           </div>
 
-          {/* Removed old single file input */}
-          {/* <input
-            type="file"
-            ref={screenshotFileInputRef}
-            className="hidden"
-            accept=".txt"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
-                alert("請使用「選擇檔案」按鈕以選取完整路徑。");
-              }
-            }}
-          /> */}
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Input File Section */}
             <div className="space-y-2">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">網址清單</p>
-              {config.inputFiles && config.inputFiles.length > 0 ? (
+              {config.inputFiles?.length ? (
                 <div className="space-y-2">
-                  {config.inputFiles.map((file, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-3 p-3 rounded-xl border border-blue-500/30 bg-blue-50/20 dark:bg-blue-500/5 group relative"
-                    >
-                      <div className="size-8 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
-                        <span className="material-symbols-outlined text-lg">description</span>
-                      </div>
+                  {config.inputFiles.map((file, idx) => (
+                    <div key={idx} className="flex items-center gap-3 p-3 rounded-xl border border-blue-500/30 bg-blue-50/20 dark:bg-blue-500/5 group">
+                      <span className="material-symbols-outlined text-lg text-blue-600">description</span>
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{file.name}</p>
-                        <button
-                          onClick={() => handleScreenshotRemoveFile(index)}
-                          className="text-[9px] text-red-500 font-bold hover:underline"
-                        >
-                          移除
-                        </button>
+                        <button onClick={() => handleScreenshotRemoveFile(idx)} className="text-[9px] text-red-500 font-bold hover:underline">移除</button>
                       </div>
-                      {/* Edit button for individual file might not be needed for multiple files, or could re-open selection */}
                     </div>
                   ))}
-                  <div className="flex justify-start gap-2">
-                    <button
-                      onClick={handleScreenshotFileSelect}
-                      className="flex items-center justify-center gap-2 p-3 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 cursor-pointer hover:border-blue-600/50 transition-all text-[10px] font-black text-slate-400 hover:text-blue-600 uppercase"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">add_circle</span>
-                      新增檔案
+                  <div className="flex gap-2">
+                    <button onClick={handleScreenshotFileSelect} className="p-3 border border-dashed border-slate-200 rounded-xl text-[10px] font-black text-slate-400 hover:text-blue-600 uppercase flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[16px]">add_circle</span>新增檔案
                     </button>
-                    <button
-                      onClick={handleScreenshotFolderSelect}
-                      className="flex items-center justify-center gap-2 p-3 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 cursor-pointer hover:border-emerald-600/50 transition-all text-[10px] font-black text-slate-400 hover:text-emerald-600 uppercase"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">folder_open</span>
-                      選取資料夾
+                    <button onClick={handleScreenshotFolderSelect} className="p-3 border border-dashed border-slate-200 rounded-xl text-[10px] font-black text-slate-400 hover:text-emerald-600 uppercase flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[16px]">folder_open</span>選取資料夾
                     </button>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <div
-                    onClick={handleScreenshotFileSelect}
-                    className="flex items-center gap-3 p-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-all border-spacing-4 group"
-                  >
-                    <div className="size-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                  <div onClick={handleScreenshotFileSelect} className="flex items-center gap-3 p-4 rounded-xl border border-dashed border-slate-200 cursor-pointer hover:bg-slate-50 transition-all group">
+                    <div className="size-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all">
                       <span className="material-symbols-outlined">add_circle</span>
                     </div>
-                    <div>
-                      <p className="text-sm font-bold dark:text-white">選擇多個檔案</p>
-                      <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Select TXT Files</p>
-                    </div>
-                  </div>
-
-                  <div
-                    onClick={handleScreenshotFolderSelect}
-                    className="flex items-center gap-3 p-4 rounded-xl border border-dashed border-emerald-500/20 dark:border-emerald-500/10 bg-emerald-50/20 dark:bg-emerald-500/5 cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all border-spacing-4 group"
-                  >
-                    <div className="size-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-all">
-                      <span className="material-symbols-outlined">folder_open</span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold dark:text-white">選擇整份資料夾</p>
-                      <p className="text-[10px] text-emerald-500/70 uppercase font-bold tracking-widest">Select Folder</p>
-                    </div>
+                    <div><p className="text-sm font-bold">選擇多個檔案</p><p className="text-[10px] text-slate-500">Select TXT Files</p></div>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Output Dir Section */}
-            <div className="space-y-2 flex flex-col h-full">
+            <div className="space-y-2">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">輸出資料夾</p>
-              <div className="flex-1 min-h-[140px] flex flex-col gap-3 p-2">
-                {config.outputDir ? (
-                  <div className="flex items-center gap-3 p-3 bg-white dark:bg-slate-900 rounded-xl border border-emerald-500/20 shadow-sm group">
-                    <div className="size-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600 shrink-0">
-                      <span className="material-symbols-outlined">folder</span>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{config.outputDirDisplay}</p>
-                      <p className="text-[10px] text-slate-400 truncate font-mono">{shortenPath(config.outputDir, 35)}</p>
-                    </div>
-                    <button onClick={handleScreenshotRemoveDir} className="p-1.5 text-slate-300 hover:text-red-500 transition-colors">
-                      <span className="material-symbols-outlined text-sm">close</span>
-                    </button>
+              {config.outputDir ? (
+                <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-emerald-500/20 group">
+                  <span className="material-symbols-outlined text-emerald-600">folder</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold truncate">{config.outputDirDisplay}</p>
+                    <p className="text-[10px] text-slate-400 truncate font-mono">{shortenPath(config.outputDir, 35)}</p>
                   </div>
-                ) : (
-                  <div
-                    onClick={handleScreenshotDirSelect}
-                    className="flex flex-col gap-2 p-4 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-800/20 cursor-pointer group hover:border-blue-600/50 transition-all"
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className="size-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:text-blue-600 transition-colors">
-                        <span className="material-symbols-outlined text-2xl">create_new_folder</span>
-                      </div>
-                      <div className="space-y-2">
-                        <p className="text-[13px] font-bold text-slate-600 dark:text-slate-300 group-hover:text-blue-600 transition-colors leading-relaxed whitespace-pre-line">
-                          選擇輸出資料夾{"\n"}
-                          或使用預設
-                        </p>
-                        <div className="pt-1">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">預設地址</p>
-                          <p className="text-[10px] text-slate-400 font-mono break-all leading-tight mt-1 opacity-70 group-hover:opacity-100 transition-opacity">
-                            {defaultOutputDir ? shortenPath(defaultOutputDir, 50) : '（請先選擇輸入檔案）'}
-                          </p>
-                        </div>
-                      </div>
+                  <button onClick={handleScreenshotRemoveDir} className="p-1.5 text-slate-300 hover:text-red-500"><span className="material-symbols-outlined text-sm">close</span></button>
+                </div>
+              ) : (
+                <div onClick={handleScreenshotDirSelect} className="flex flex-col gap-2 p-4 rounded-xl border-2 border-dashed border-slate-200 cursor-pointer hover:border-blue-600/50 transition-all">
+                  <div className="flex items-start gap-4">
+                    <div className="size-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 p-2"><span className="material-symbols-outlined">create_new_folder</span></div>
+                    <div className="space-y-1">
+                      <p className="text-[13px] font-bold text-slate-600">選擇輸出資料夾</p>
+                      <p className="text-[10px] text-slate-400 font-mono break-all leading-tight mt-1 opacity-70">
+                        {defaultOutputDir ? shortenPath(defaultOutputDir, 50) : '（請先選擇輸入檔案）'}
+                      </p>
                     </div>
                   </div>
-                )}
-
-                {/* Content moved to bottom bar per user request */}
-              </div>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Progress Indicator */}
-          <div className="flex flex-col gap-2 py-4 px-2 bg-slate-50/50 dark:bg-slate-800/30 rounded-xl">
-            <div className="flex justify-between text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">
-              <span>任務進度</span>
-              <span>{screenshotStatus.processed} / {screenshotStatus.total}</span>
-            </div>
-            <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3 overflow-hidden">
-              <div
-                className="bg-blue-600 h-full rounded-full transition-all duration-500 ease-out"
-                style={{ width: `${screenshotStatus.total > 0 ? (screenshotStatus.processed / screenshotStatus.total) * 100 : 0}%` }}
-              ></div>
+          <div className="flex flex-col gap-2 py-4 px-2 bg-slate-50/50 rounded-xl">
+            <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1"><span>任務進度</span><span>{screenshotStatus.processed} / {screenshotStatus.total}</span></div>
+            <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+              <div className="bg-blue-600 h-full transition-all duration-500" style={{ width: `${screenshotStatus.total > 0 ? (screenshotStatus.processed / screenshotStatus.total) * 100 : 0}%` }}></div>
             </div>
             <div className="text-center text-[10px] text-slate-400 font-bold uppercase tracking-wider">
               {screenshotStatus.status === 'running' ? '執行中...' : (screenshotStatus.processed > 0 && screenshotStatus.processed === screenshotStatus.total ? '已完成' : '等待啟動')}
@@ -722,65 +676,29 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           <div className="space-y-4 border-t border-slate-100 dark:border-slate-800 pt-5">
-            {/* Latest Output Section */}
-            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 border border-slate-100 dark:border-slate-800 flex flex-col gap-3">
+            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">最新輸出</span>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">最新輸出</span>
                 <button
-                  onClick={() => {
-                    // @ts-ignore
-                    if (window.pywebview && window.pywebview.api) {
-                      const path = appState.latest_screenshot_folder || config.outputDir || config.output_dir;
-                      if (path) {
-                        // @ts-ignore
-                        window.pywebview.api.open_folder(path);
-                      } else {
-                        alert("尚未執行任務或找不到資料夾");
-                      }
-                    }
-                  }}
-                  className="text-[10px] font-bold text-blue-600 hover:underline cursor-pointer"
+                  onClick={() => { if (window.pywebview?.api) window.pywebview.api.open_folder(appState.latest_screenshot_folder || config.outputDir); }}
+                  className="text-[10px] font-bold text-blue-600 hover:underline"
                 >
                   開啟資料夾
                 </button>
               </div>
-
-              {/* Latest Results Listing Integrated here */}
               <div className="space-y-2 overflow-y-auto custom-scrollbar max-h-[160px]">
-                {appState.latest_screenshot_results && appState.latest_screenshot_results.length > 0 ? (
-                  appState.latest_screenshot_results.map((res: any, idx: number) => (
-                    <div key={idx} className="flex items-center justify-between p-2 bg-white dark:bg-slate-900 rounded-lg shadow-sm group">
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <span className="material-symbols-outlined text-xs text-blue-500">description</span>
-                        <span
-                          className="truncate text-[11px] font-medium text-slate-700 dark:text-slate-300 cursor-pointer hover:text-blue-600 hover:underline"
-                          title={res.name}
-                          onClick={() => {
-                            // @ts-ignore
-                            if (window.pywebview && window.pywebview.api) window.pywebview.api.open_file(res.path);
-                          }}
-                        >
-                          {res.name}
-                        </span>
-                      </div>
-                      <span className="text-[9px] text-slate-400 ml-2 shrink-0">DOCX</span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-4 text-[10px] text-slate-400 italic font-medium">
-                    {screenshotStatus.status === 'running' ? '正在生成輸出...' : '暫無執行輸出'}
+                {appState.latest_screenshot_results?.length ? appState.latest_screenshot_results.map((res: any, idx: number) => (
+                  <div key={idx} className="flex items-center justify-between p-2 bg-white rounded-lg shadow-sm">
+                    <span className="truncate text-[11px] font-medium text-slate-700 cursor-pointer hover:underline" onClick={() => { if (window.pywebview?.api) window.pywebview.api.open_file(res.path); }}>{res.name}</span>
+                    <span className="text-[9px] text-slate-400 ml-2 shrink-0">DOCX</span>
                   </div>
-                )}
+                )) : <div className="text-center py-4 text-[10px] text-slate-400 italic">{screenshotStatus.status === 'running' ? '正在生成...' : '暫無執行輸出'}</div>}
               </div>
             </div>
-
           </div>
         </div>
-
-
       </div>
-
-    </div>
+    </div >
   );
 };
 

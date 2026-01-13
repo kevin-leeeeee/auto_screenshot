@@ -2,17 +2,69 @@ import webview
 import threading
 import sys
 import os
+import json
 from pathlib import Path
 from flask import Flask, send_from_directory
 
-# Backend script paths
-BASE_DIR = Path(__file__).parent.absolute()
+# Version Information
+CURRENT_VERSION = "v2.2.0"
+REPO_NAME = "kevin-leeeeee/auto_screenshot"
+
+# Backend script paths with validation
+if getattr(sys, 'frozen', False):
+    # If running as executable, BASE_DIR is where the .exe is located
+    BASE_DIR = Path(sys.executable).parent.absolute()
+    # Path to internal dist files (PyInstaller magic)
+    RESOURCE_DIR = Path(sys._MEIPASS)
+    DIST_DIR = RESOURCE_DIR / "autoflow-control-center" / "dist"
+else:
+    # If running from source
+    BASE_DIR = Path(__file__).parent.absolute()
+    DIST_DIR = BASE_DIR / "autoflow-control-center" / "dist"
+
 EXCEL_DIR = BASE_DIR / "excel_轉換"
 SCREENSHOT_DIR = BASE_DIR / "截圖腳本"
-DIST_DIR = BASE_DIR / "autoflow-control-center" / "dist"
 
-sys.path.append(str(EXCEL_DIR))
-sys.path.append(str(SCREENSHOT_DIR))
+# Validate external script directories
+def validate_external_scripts():
+    """驗證外部腳本目錄是否存在且包含必要檔案"""
+    errors = []
+    
+    if not EXCEL_DIR.exists():
+        errors.append(f"找不到 Excel 轉換腳本目錄: {EXCEL_DIR}")
+    elif not (EXCEL_DIR / "convert_excel.py").exists():
+        errors.append(f"找不到 convert_excel.py 於: {EXCEL_DIR}")
+    
+    if not SCREENSHOT_DIR.exists():
+        errors.append(f"找不到截圖腳本目錄: {SCREENSHOT_DIR}")
+    elif not (SCREENSHOT_DIR / "main.py").exists():
+        errors.append(f"找不到 main.py 於: {SCREENSHOT_DIR}")
+    
+    if errors:
+        error_msg = "\n".join([
+            "❌ 外部腳本載入失敗:",
+            "",
+            *[f"  • {err}" for err in errors],
+            "",
+            "💡 解決方案:",
+            "  1. 確認程式目錄結構完整",
+            "  2. 重新解壓縮完整的發布包",
+            f"  3. 確認以下目錄存在:",
+            f"     - {EXCEL_DIR}",
+            f"     - {SCREENSHOT_DIR}",
+        ])
+        print(error_msg, file=sys.stderr)
+        return False, error_msg
+    
+    return True, None
+
+# Validate before adding to sys.path
+validation_ok, validation_error = validate_external_scripts()
+
+# Ensure sys.path includes the directories for external scripts
+for p in [str(EXCEL_DIR), str(SCREENSHOT_DIR)]:
+    if p not in sys.path:
+        sys.path.append(p)
 
 # Mock System State for Bridge
 class Bridge:
@@ -29,10 +81,285 @@ class Bridge:
         self._latest_screenshot_folder: str | None = None
         self._latest_screenshot_results: list = []
         self._data_file: Path = BASE_DIR / "app_data.json"
+        self._update_check_cache: dict = {}  # Cache for update checks
         self._init_data()
 
-    def _init_data(self):
+    def check_update(self):
+        """Check for updates from GitHub Releases API with caching"""
+        import requests
+        import time
+        
+        # Check cache (valid for 1 hour)
+        cache_key = "last_update_check"
+        cache_ttl = 3600  # 1 hour in seconds
+        
+        if cache_key in self._update_check_cache:
+            cached_time, cached_result = self._update_check_cache[cache_key]
+            if time.time() - cached_time < cache_ttl:
+                return cached_result
+        
+        try:
+            url = f"https://api.github.com/repos/{REPO_NAME}/releases/latest"
+            response = requests.get(url, timeout=5)
+            
+            if response.status_code == 200:
+                data = response.json()
+                latest_version = data.get("tag_name", "")
+                
+                # Extract changelog from release body
+                changelog = data.get("body", "")
+                
+                # Get download URL for Full.zip
+                download_url = ""
+                assets = data.get("assets", [])
+                for asset in assets:
+                    if "_Full.zip" in asset.get("name", ""):
+                        download_url = asset.get("browser_download_url", "")
+                        break
+                
+                result = {
+                    "has_update": latest_version and latest_version != CURRENT_VERSION,
+                    "latest_version": latest_version,
+                    "current_version": CURRENT_VERSION,
+                    "release_url": data.get("html_url", ""),
+                    "download_url": download_url,
+                    "changelog": changelog,
+                    "published_at": data.get("published_at", ""),
+                    "release_name": data.get("name", latest_version)
+                }
+            elif response.status_code == 404:
+                result = {
+                    "has_update": False, 
+                    "current_version": CURRENT_VERSION,
+                    "error": "找不到發布資訊"
+                }
+            else:
+                result = {
+                    "has_update": False,
+                    "current_version": CURRENT_VERSION,
+                    "error": f"GitHub API 回應錯誤 (HTTP {response.status_code})"
+                }
+            
+            # Cache the result
+            self._update_check_cache[cache_key] = (time.time(), result)
+            return result
+            
+        except requests.exceptions.Timeout:
+            return {
+                "has_update": False,
+                "error": "連線逾時,請檢查網路連線",
+                "current_version": CURRENT_VERSION
+            }
+        except requests.exceptions.ConnectionError:
+            return {
+                "has_update": False,
+                "error": "無法連線到 GitHub,請檢查網路連線",
+                "current_version": CURRENT_VERSION
+            }
+        except Exception as e:
+            print(f"Update check failed: {e}")
+            return {
+                "has_update": False,
+                "error": f"檢查更新時發生錯誤: {str(e)}",
+                "current_version": CURRENT_VERSION
+            }
+
+    def check_component_updates(self):
+        """檢查各元件是否有更新 (分離式更新)"""
+        import requests
+        
+        try:
+            # 下載最新的 manifest.json
+            url = f"https://github.com/{REPO_NAME}/releases/latest/download/manifest.json"
+            response = requests.get(url, timeout=5)
+            
+            if response.status_code != 200:
+                return {"has_update": False, "error": "無法取得更新資訊"}
+            
+            manifest = response.json()
+            
+            # 讀取本地版本資訊
+            local_manifest = self._load_local_manifest()
+            
+            updates_needed = []
+            total_size = 0
+            
+            # 檢查核心程式
+            if "core" in manifest.get("components", {}):
+                core_info = manifest["components"]["core"]
+                local_core_version = local_manifest.get("core_version", "unknown")
+                
+                if core_info["version"] != local_core_version:
+                    updates_needed.append({
+                        "component": "core",
+                        "name": "核心程式",
+                        "current": local_core_version,
+                        "latest": core_info["version"],
+                        "size": core_info["size"],
+                        "download_url": core_info["download_url"],
+                        "sha256": core_info["sha256"]
+                    })
+                    total_size += core_info["size"]
+            
+            # 檢查外部腳本
+            if "scripts" in manifest.get("components", {}):
+                scripts_info = manifest["components"]["scripts"]
+                local_scripts_version = local_manifest.get("scripts_version", "unknown")
+                
+                if scripts_info["version"] != local_scripts_version:
+                    updates_needed.append({
+                        "component": "scripts",
+                        "name": "外部腳本",
+                        "current": local_scripts_version,
+                        "latest": scripts_info["version"],
+                        "size": scripts_info["size"],
+                        "download_url": scripts_info["download_url"],
+                        "sha256": scripts_info["sha256"]
+                    })
+                    total_size += scripts_info["size"]
+            
+            return {
+                "has_update": len(updates_needed) > 0,
+                "updates": updates_needed,
+                "total_size": total_size,
+                "total_size_mb": round(total_size / 1024 / 1024, 2),
+                "changelog": manifest.get("changelog", ""),
+                "version": manifest.get("version", "unknown")
+            }
+        
+        except Exception as e:
+            print(f"Component update check failed: {e}")
+            return {"has_update": False, "error": str(e)}
+    
+    def _load_local_manifest(self):
+        """載入本地版本資訊"""
+        manifest_file = BASE_DIR / "local_manifest.json"
+        
+        if manifest_file.exists():
+            try:
+                import json
+                with open(manifest_file, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except:
+                pass
+        
+        # 如果沒有本地 manifest,從版本檔案讀取
+        core_version_file = BASE_DIR / "core_version.txt"
+        scripts_version_file = BASE_DIR / "scripts_version.txt"
+        
+        return {
+            "core_version": core_version_file.read_text().strip() if core_version_file.exists() else "unknown",
+            "scripts_version": scripts_version_file.read_text().strip() if scripts_version_file.exists() else "unknown"
+        }
+    
+    def _save_local_manifest(self, manifest_data):
+        """儲存本地版本資訊"""
+        manifest_file = BASE_DIR / "local_manifest.json"
         import json
+        
+        with open(manifest_file, "w", encoding="utf-8") as f:
+            json.dump(manifest_data, f, indent=2, ensure_ascii=False)
+
+    def update_scripts(self):
+        """Download latest script files from GitHub Raw with validation"""
+        import requests
+        import importlib
+        import shutil
+        import hashlib
+        
+        files_to_update = [
+            {
+                "url": f"https://raw.githubusercontent.com/{REPO_NAME}/main/excel_轉換/convert_excel.py",
+                "local_path": EXCEL_DIR / "convert_excel.py"
+            },
+            {
+                "url": f"https://raw.githubusercontent.com/{REPO_NAME}/main/截圖腳本/main.py",
+                "local_path": SCREENSHOT_DIR / "main.py"
+            }
+        ]
+        
+        results = []
+        backups = []  # Track backups for potential rollback
+        
+        try:
+            for item in files_to_update:
+                file_path = item["local_path"]
+                file_name = file_path.name
+                
+                # Download new file
+                try:
+                    resp = requests.get(item["url"], timeout=10)
+                    if resp.status_code != 200:
+                        results.append(f"❌ 下載失敗: {file_name} (HTTP {resp.status_code})")
+                        continue
+                    
+                    new_content = resp.content
+                    
+                    # Basic validation: check if it's a Python file
+                    try:
+                        new_content.decode('utf-8')
+                        if not new_content.startswith(b'#') and not new_content.startswith(b'import'):
+                            results.append(f"⚠️ 檔案格式可疑: {file_name}")
+                            continue
+                    except UnicodeDecodeError:
+                        results.append(f"❌ 檔案編碼錯誤: {file_name}")
+                        continue
+                    
+                    # Backup old file if exists
+                    if file_path.exists():
+                        backup_path = file_path.with_suffix(f".py.bak.{int(time.time())}")
+                        shutil.copy2(file_path, backup_path)
+                        backups.append((file_path, backup_path))
+                        results.append(f"📦 已備份: {file_name} → {backup_path.name}")
+                    
+                    # Write new file
+                    file_path.parent.mkdir(parents=True, exist_ok=True)
+                    with open(file_path, "wb") as f:
+                        f.write(new_content)
+                    
+                    # Calculate hash for verification
+                    file_hash = hashlib.sha256(new_content).hexdigest()[:8]
+                    results.append(f"✅ 更新成功: {file_name} (SHA: {file_hash})")
+                    
+                except requests.exceptions.Timeout:
+                    results.append(f"❌ 連線逾時: {file_name}")
+                except requests.exceptions.ConnectionError:
+                    results.append(f"❌ 網路連線失敗: {file_name}")
+                except Exception as e:
+                    results.append(f"❌ 更新失敗: {file_name} ({str(e)})")
+            
+            # Reload modules if possible
+            try:
+                import convert_excel
+                importlib.reload(convert_excel)
+                results.append("🔄 已重新載入 convert_excel 模組")
+            except Exception as e:
+                results.append(f"⚠️ 模組重載失敗: {str(e)}")
+                
+            return {
+                "status": "success" if any("✅" in r for r in results) else "partial",
+                "details": results,
+                "backups": [str(b[1]) for b in backups]
+            }
+            
+        except Exception as e:
+            # Rollback on critical failure
+            if backups:
+                results.append(f"⚠️ 嘗試回滾...")
+                for original_path, backup_path in backups:
+                    try:
+                        shutil.copy2(backup_path, original_path)
+                        results.append(f"↩️ 已回滾: {original_path.name}")
+                    except Exception as rollback_error:
+                        results.append(f"❌ 回滾失敗: {original_path.name} ({rollback_error})")
+            
+            return {
+                "status": "error",
+                "message": f"更新過程發生嚴重錯誤: {str(e)}",
+                "details": results
+            }
+
+    def _init_data(self):
         if not self._data_file.exists():
             initial_data = {
                 "stats": {
@@ -47,7 +374,6 @@ class Bridge:
                 json.dump(initial_data, f, indent=4, ensure_ascii=False)
 
     def _load_data(self):
-        import json
         default_stats = {
             "total_conversions": 0,
             "total_tasks": 0,
@@ -69,7 +395,6 @@ class Bridge:
         return {"stats": default_stats, "history": []}
 
     def _save_data(self, data):
-        import json
         with open(self._data_file, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
 
@@ -214,7 +539,7 @@ class Bridge:
         return self._task_status
 
 
-    def run_excel_convert(self):
+    def run_excel_convert(self, start_date=None, end_date=None):
         try:
             if not self._current_excel_path:
                 res = self.select_excel_file()
@@ -227,7 +552,7 @@ class Bridge:
             
             start_time = time.time()
             # The script now raises ValueError for issues and returns the output_dir on success
-            output_dir_path = convert_excel.main(self._current_excel_path)
+            output_dir_path = convert_excel.main(self._current_excel_path, start_date, end_date)
             duration = f"{time.time() - start_time:.1f}s"
             
             if output_dir_path and os.path.exists(output_dir_path):
@@ -281,6 +606,104 @@ class Bridge:
             log_dir.mkdir()
         os.startfile(log_dir)
         return True
+
+    def download_full_update(self, save_path=None):
+        """
+        下載完整更新包到指定位置
+        Returns: {status, path, message, size_mb}
+        """
+        import requests
+        
+        try:
+            # First check for updates to get download URL
+            update_info = self.check_update()
+            
+            if not update_info.get("has_update"):
+                return {
+                    "status": "no_update",
+                    "message": "目前已是最新版本"
+                }
+            
+            download_url = update_info.get("download_url")
+            if not download_url:
+                return {
+                    "status": "error",
+                    "message": "找不到下載連結,請手動前往 GitHub Releases 下載"
+                }
+            
+            # Determine save path
+            if not save_path:
+                downloads_dir = BASE_DIR / "downloads"
+                downloads_dir.mkdir(exist_ok=True)
+                latest_version = update_info.get("latest_version", "latest")
+                save_path = downloads_dir / f"AutoFlow_Control_Center_{latest_version}_Full.zip"
+            else:
+                save_path = Path(save_path)
+            
+            # Download with progress tracking
+            response = requests.get(download_url, stream=True, timeout=30)
+            response.raise_for_status()
+            
+            total_size = int(response.headers.get('content-length', 0))
+            downloaded = 0
+            
+            with open(save_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        # Could emit progress here if needed
+            
+            size_mb = total_size / (1024 * 1024)
+            
+            return {
+                "status": "success",
+                "path": str(save_path),
+                "message": f"下載完成! 檔案已儲存至: {save_path.name}",
+                "size_mb": round(size_mb, 2),
+                "version": update_info.get("latest_version")
+            }
+            
+        except requests.exceptions.Timeout:
+            return {
+                "status": "error",
+                "message": "下載逾時,請檢查網路連線或稍後再試"
+            }
+        except requests.exceptions.ConnectionError:
+            return {
+                "status": "error",
+                "message": "網路連線失敗,請檢查網路設定"
+            }
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"下載失敗: {str(e)}"
+            }
+
+    def open_downloads_folder(self):
+        """開啟下載資料夾"""
+        downloads_dir = BASE_DIR / "downloads"
+        if not downloads_dir.exists():
+            downloads_dir.mkdir()
+        os.startfile(downloads_dir)
+        return {"status": "success", "path": str(downloads_dir)}
+
+    def get_update_info(self):
+        """
+        取得完整的更新資訊,包含版本比較和可用更新
+        """
+        update_check = self.check_update()
+        
+        # Add local version details
+        result = {
+            **update_check,
+            "current_version_full": CURRENT_VERSION,
+            "base_dir": str(BASE_DIR),
+            "has_scripts": EXCEL_DIR.exists() and SCREENSHOT_DIR.exists()
+        }
+        
+        return result
+
 
     def get_default_output_dir(self, urls_file_path):
         """Calculates what the default output dir would be for a given txt file."""
@@ -399,7 +822,6 @@ class Bridge:
             if not done_log_path.exists():
                  return {"status": "success", "message": "無已完成紀錄"}
 
-            import json
             with open(done_log_path, "r", encoding="utf-8") as f:
                 done_data = json.load(f)
             
@@ -439,8 +861,6 @@ class Bridge:
             "latest_screenshot_folder": self._latest_screenshot_folder,
             "latest_screenshot_results": self._latest_screenshot_results
         }
-
-    # ... (select_media code if needed) ...
 
     def start_screenshot(self, config=None):
         try:
@@ -523,6 +943,17 @@ class Bridge:
                          api_config["page_wait_range"] = (w.get("min", 5), w.get("max", 10))
                      else:
                          api_config["page_wait_range"] = (int(w), int(w))
+                
+                if "customCategories" in config:
+                    api_config["custom_categories"] = config["customCategories"]
+                
+                if "categoryPause" in config:
+                    api_config["category_pause"] = config["categoryPause"]
+                
+                if "keywords" in config:
+                    api_config["keywords"] = config["keywords"]
+
+
             
             def progress_callback(processed, total):
                 self._task_status["processed"] = processed
@@ -636,6 +1067,19 @@ def run_flask():
     server.run(port=5858, debug=False, threaded=True)
 
 if __name__ == "__main__":
+    # Validate external scripts before starting
+    if not validation_ok:
+        print("\n" + "="*60)
+        print(validation_error)
+        print("="*60)
+        print("\n按任意鍵退出...")
+        try:
+            import msvcrt
+            msvcrt.getch()
+        except:
+            input()
+        sys.exit(1)
+    
     if not DIST_DIR.exists():
         print("Error: 'dist' folder not found. Please run 'npm run build' inside autoflow-control-center first.")
         sys.exit(1)
@@ -645,7 +1089,7 @@ if __name__ == "__main__":
     t.start()
 
     print("--- Autoflow 控制中心正在啟動 ---")
-    print("目前正在開啟桌面視窗，請稍候...")
+    print("目前正在開啟桌面視窗,請稍候...")
 
     # Launch PyWebView window
     bridge = Bridge()
@@ -659,9 +1103,25 @@ if __name__ == "__main__":
     )
     bridge._window = window
     
-    # Force Edge Chromium for best compatibility on Windows
-    try:
-        webview.start(gui='edgechromium')
-    except Exception:
-        # Fallback to default if Edge is unavailable
-        webview.start()
+    # Detect if running in PyInstaller bundle
+    import sys
+    if getattr(sys, 'frozen', False):
+        # Running in PyInstaller bundle - force edgechromium to avoid pythonnet issues
+        try:
+            webview.start(gui='edgechromium')
+        except Exception as e:
+            print(f"Edge Chromium failed: {e}")
+            # Try edgehtml as fallback
+            try:
+                webview.start(gui='edgehtml')
+            except Exception as e2:
+                print(f"Edge HTML failed: {e2}")
+                # Last resort: default
+                webview.start()
+    else:
+        # Running from source - try edgechromium first
+        try:
+            webview.start(gui='edgechromium')
+        except Exception:
+            webview.start()
+

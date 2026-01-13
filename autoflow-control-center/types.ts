@@ -38,6 +38,8 @@ export interface AutomationConfig {
   textCheckEnabled: boolean;
   scrollCapture: boolean;
   scrollTimes: number;
+  customCategories?: Record<string, string[]>;
+  categoryPause?: Record<string, boolean>;
   inputFiles: any[]; // Changed to any[] to support objects with {path, name}
   inputFilesDisplay: string[]; // for display names
   // Legacy single file support (optional, can keep for compatibility or remove)
