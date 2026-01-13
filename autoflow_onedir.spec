@@ -112,7 +112,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='AutoFlow_Control_Center_v2.1.0',
+    name='AutoFlow_Control_Center_v2.2.0',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -147,5 +147,5 @@ coll = COLLECT(
         # Avoid antivirus false positives
         'api-ms-win-*.dll',
     ],
-    name='AutoFlow_Control_Center_v2.1.0',
+    name='AutoFlow_Control_Center_v2.2.0',
 )

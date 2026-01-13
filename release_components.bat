@@ -78,7 +78,7 @@ if exist "dist\Scripts_v%SCRIPTS_VERSION%.zip" (
 
 REM 檢查完整壓縮包 (可選)
 if exist "dist\AutoFlow_Control_Center_%TAG%_Full.zip" (
-    set /p INCLUDE_FULL=是否也上傳完整壓縮包? (Y/N): 
+    set /p "INCLUDE_FULL=是否也上傳完整壓縮包? [Y/N]: "
     if /i "!INCLUDE_FULL!"=="Y" (
         set FILES_TO_UPLOAD=%FILES_TO_UPLOAD% "dist\AutoFlow_Control_Center_%TAG%_Full.zip"
         set /a UPLOAD_COUNT+=1
@@ -94,9 +94,9 @@ echo 📊 將上傳 %UPLOAD_COUNT% 個檔案
 echo.
 
 REM ========== 確認發布 ==========
-set /p CONFIRM=確定要發布到 GitHub? (Y/N): 
+set /p "CONFIRM=確定要發布到 GitHub? [Y/N]: "
 
-if /i not "%CONFIRM%"=="Y" (
+if /i not "!CONFIRM!"=="Y" (
     echo.
     echo ❌ 已取消發布
     pause
@@ -138,8 +138,8 @@ echo 🔗 Release 頁面: https://github.com/kevin-leeeeee/auto_screenshot/relea
 echo.
 
 REM 開啟 Release 頁面
-set /p OPEN=是否開啟 Release 頁面? (Y/N): 
-if /i "%OPEN%"=="Y" (
+set /p "OPEN=是否開啟 Release 頁面? [Y/N]: "
+if /i "!OPEN!"=="Y" (
     start https://github.com/kevin-leeeeee/auto_screenshot/releases/tag/%TAG%
 )
 

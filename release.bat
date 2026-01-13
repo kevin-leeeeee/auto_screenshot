@@ -3,9 +3,9 @@ setlocal enabledelayedexpansion
 chcp 65001 >nul
 
 echo.
-echo ╔════════════════════════════════════════════════════════════╗
-echo ║  AutoFlow - 自動建置與發布工具                            ║
-echo ╚════════════════════════════════════════════════════════════╝
+echo ============================================================
+echo   AutoFlow - 自動建置與發布工具
+echo ============================================================
 echo.
 
 REM ========== 檢查 GitHub CLI ==========
@@ -54,10 +54,10 @@ echo.
 
 REM ========== 檢查 CHANGELOG ==========
 if not exist "CHANGELOG.md" (
-    echo ⚠️  警告: 找不到 CHANGELOG.md
+    echo [!] 警告: 找不到 CHANGELOG.md
     echo 建議建立更新日誌以提供更好的發布說明
     echo.
-    set /p CONTINUE=是否繼續? (Y/N): 
+    set /p "CONTINUE=是否繼續? [Y/N]: "
     if /i not "!CONTINUE!"=="Y" (
         echo 已取消發布
         pause
@@ -110,9 +110,9 @@ echo   標題: AutoFlow Control Center %TAG%
 echo   檔案: %ZIP_NAME% (!SIZE_MB! MB)
 echo.
 
-set /p CONFIRM=確定要發布嗎? (Y/N): 
+set /p "CONFIRM=確定要發布嗎? [Y/N]: "
 
-if /i not "%CONFIRM%"=="Y" (
+if /i not "!CONFIRM!"=="Y" (
     echo.
     echo ❌ 已取消發布
     pause
@@ -171,8 +171,8 @@ echo   3. 通知使用者更新
 echo.
 
 REM 自動開啟 Release 頁面
-set /p OPEN=是否開啟 Release 頁面? (Y/N): 
-if /i "%OPEN%"=="Y" (
+set /p "OPEN=是否開啟 Release 頁面? [Y/N]: "
+if /i "!OPEN!"=="Y" (
     start https://github.com/kevin-leeeeee/auto_screenshot/releases/tag/%TAG%
 )
 

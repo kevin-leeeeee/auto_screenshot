@@ -42,3 +42,6 @@ excel_轉換/output/
 
 # 應用程式資料
 app_data.json
+
+# 機密檔案
+excel_轉換/活頁簿1.xlsx
