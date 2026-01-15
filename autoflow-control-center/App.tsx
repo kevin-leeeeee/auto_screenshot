@@ -17,6 +17,7 @@ const App: React.FC = () => {
   const [isLogOpen, setIsLogOpen] = useState(false);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [updateInfo, setUpdateInfo] = useState<any>(null);
+  const [appVersion, setAppVersion] = useState('v2.2.0');
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
   const [isUpdatingScripts, setIsUpdatingScripts] = useState(false);
 
@@ -31,10 +32,11 @@ const App: React.FC = () => {
     batchSize: 8,
     batchRestRange: { min: 20, max: 30 },
     keywords: ['登入', '拼圖與人機驗證', '查無資料', 'BSMI'],
-    autoWordExport: false,
+    autoWordExport: true,
     skipDone: false,
     textCheckEnabled: false,
     scrollCapture: false,
+    scrollStitch: true,
     scrollTimes: 4,
     customCategories: {},
     categoryPause: {
@@ -163,6 +165,18 @@ const App: React.FC = () => {
     `;
   }, [displaySettings]);
 
+  // Save queue collapse state to backend
+  useEffect(() => {
+    const saveCollapseState = async () => {
+      // @ts-ignore
+      if (window.pywebview?.api) {
+        // @ts-ignore
+        await window.pywebview.api.set_queue_collapsed(isQueueCollapsed);
+      }
+    };
+    saveCollapseState();
+  }, [isQueueCollapsed]);
+
   // Load settings on startup
   useEffect(() => {
     const loadSettings = async () => {
@@ -170,6 +184,13 @@ const App: React.FC = () => {
       if (window.pywebview?.api) {
         // @ts-ignore
         const state = await window.pywebview.api.get_app_state();
+        if (state.version) setAppVersion(state.version);
+
+        // 載入待執行清單收合狀態
+        if (typeof state.queueCollapsed === 'boolean') {
+          setIsQueueCollapsed(state.queueCollapsed);
+        }
+
         if (state.settings) {
           if (state.settings.config) {
             // Force '登入' to be enabled by default as per user request, even if missing in saved config
@@ -232,8 +253,20 @@ const App: React.FC = () => {
         }
       }
     };
-    // Wait slightly for pywebview to be ready
-    setTimeout(loadSettings, 500);
+    // Wait for pywebview to be ready with retries
+    let retryCount = 0;
+    const maxRetries = 20; // 10 seconds total
+    const retryInterval = setInterval(() => {
+      // @ts-ignore
+      if (window.pywebview?.api) {
+        loadSettings();
+        clearInterval(retryInterval);
+      } else if (retryCount >= maxRetries) {
+        console.error("Pywebview API failing to load after 10s");
+        clearInterval(retryInterval);
+      }
+      retryCount++;
+    }, 500);
 
     // Polling task status
     const interval = setInterval(async () => {
@@ -363,6 +396,7 @@ const App: React.FC = () => {
       <Sidebar
         currentView={currentView}
         onViewChange={setCurrentView}
+        version={appVersion}
         systemStatus={taskStatus.status}
         onCheckUpdate={handleCheckUpdate}
         hasUpdate={updateInfo?.has_update || false}

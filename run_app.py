@@ -5,6 +5,13 @@ import os
 import json
 from pathlib import Path
 from flask import Flask, send_from_directory
+import requests
+import time
+import PIL.Image
+import PIL.ImageGrab
+import PIL.ImageChops
+import PIL.ImageStat
+import pyautogui
 
 # Version Information
 CURRENT_VERSION = "v2.2.0"
@@ -23,7 +30,11 @@ else:
     DIST_DIR = BASE_DIR / "autoflow-control-center" / "dist"
 
 EXCEL_DIR = BASE_DIR / "excel_轉換"
-SCREENSHOT_DIR = BASE_DIR / "截圖腳本"
+# Prioritize 'screenshot_script' for source mode, '截圖腳本' for frozen mode
+if (BASE_DIR / "screenshot_script").exists():
+    SCREENSHOT_DIR = BASE_DIR / "screenshot_script"
+else:
+    SCREENSHOT_DIR = BASE_DIR / "截圖腳本"
 
 # Validate external script directories
 def validate_external_scripts():
@@ -86,8 +97,8 @@ class Bridge:
 
     def check_update(self):
         """Check for updates from GitHub Releases API with caching"""
-        import requests
-        import time
+        # import requests <- already at top
+        # import time     <- already at top
         
         # Check cache (valid for 1 hour)
         cache_key = "last_update_check"
@@ -99,7 +110,8 @@ class Bridge:
                 return cached_result
         
         try:
-            url = f"https://api.github.com/repos/{REPO_NAME}/releases/latest"
+            repo = REPO_NAME.strip()
+            url = f"https://api.github.com/repos/{repo}/releases/latest"
             response = requests.get(url, timeout=5)
             
             if response.status_code == 200:
@@ -127,6 +139,11 @@ class Bridge:
                     "published_at": data.get("published_at", ""),
                     "release_name": data.get("name", latest_version)
                 }
+            
+                # Cache the result
+                self._update_check_cache[cache_key] = (time.time(), result)
+                return result
+            
             elif response.status_code == 404:
                 result = {
                     "has_update": False, 
@@ -163,6 +180,39 @@ class Bridge:
                 "error": f"檢查更新時發生錯誤: {str(e)}",
                 "current_version": CURRENT_VERSION
             }
+
+    def clear_latest_results(self):
+        """清除目前的執行結果紀錄"""
+        self._latest_screenshot_results = []
+        self._latest_screenshot_folder = None
+        self._latest_output_folder = None
+        self._task_status = {
+            "processed": 0, 
+            "total": 0, 
+            "status": "idle"
+        }
+        return {"status": "success"}
+
+    def select_multiple_folders(self):
+        """改為單次選取資料夾，符合使用者『有需要再按』的要求"""
+        import tkinter as tk
+        from tkinter import filedialog
+        import os
+        
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes("-topmost", True)
+        folder_path = filedialog.askdirectory(title="選擇網址資料夾")
+        root.destroy()
+        
+        if folder_path:
+            folder_item = {
+                "path": folder_path,
+                "name": os.path.basename(folder_path) if os.path.basename(folder_path) else folder_path,
+                "isDir": True
+            }
+            return {"status": "success", "folders": [folder_item]}
+        return {"status": "canceled"}
 
     def check_component_updates(self):
         """檢查各元件是否有更新 (分離式更新)"""
@@ -716,8 +766,7 @@ class Bridge:
             # Default is usually relative to the script or a specific base
             # In our setup, main.py calculates it relative to its own location if not careful
             # But here we want the absolute path for display
-            base_dir = os.path.dirname(os.path.abspath(__file__))
-            return os.path.abspath(os.path.join(base_dir, "截圖腳本", folder_name))
+            return os.path.abspath(os.path.join(str(SCREENSHOT_DIR), folder_name))
         except Exception:
             return ""
 
@@ -854,13 +903,25 @@ class Bridge:
     def get_app_state(self):
         data = self._load_data()
         return {
+            "version": CURRENT_VERSION,
             "stats": data.get("stats", {}),
             "history": data.get("history", []),
             "settings": data.get("settings", {}), # Return saved settings
             "latest_excel_folder": self._latest_output_folder,
             "latest_screenshot_folder": self._latest_screenshot_folder,
-            "latest_screenshot_results": self._latest_screenshot_results
+            "latest_screenshot_results": self._latest_screenshot_results,
+            "queueCollapsed": data.get("queueCollapsed", False)  # 回傳待執行清單收合狀態
         }
+
+    def set_queue_collapsed(self, collapsed):
+        """儲存待執行清單收合狀態"""
+        try:
+            data = self._load_data()
+            data["queueCollapsed"] = collapsed
+            self._save_data(data)
+            return {"status": "success"}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
 
     def start_screenshot(self, config=None):
         try:
@@ -917,6 +978,7 @@ class Bridge:
                 if "skipDone" in config: api_config["skip_done"] = config["skipDone"]
                 if "textCheckEnabled" in config: api_config["text_check_enabled"] = config["textCheckEnabled"]
                 if "scrollCapture" in config: api_config["scroll_capture"] = config["scrollCapture"]
+                if "scrollStitch" in config: api_config["scroll_stitch"] = config["scrollStitch"]
                 if "scrollTimes" in config: api_config["scroll_pagedown_times"] = config["scrollTimes"]
                 
                 # Crop Toggle Logic
@@ -965,12 +1027,19 @@ class Bridge:
             def task():
                 import time
                 import os
-                import main as screenshot_main
+                import traceback
+                try:
+                    import main as screenshot_main
+                except Exception as e:
+                    print(f"FAILED to import screenshot main: {e}")
+                    traceback.print_exc()
+                    self._task_status["status"] = "error"
+                    return
                 
                 total_files = len(input_files)
                 # Store original CWD
                 original_cwd = os.getcwd()
-                script_dir = os.path.join(BASE_DIR, "截圖腳本")
+                script_dir = str(SCREENSHOT_DIR)
                 
                 try:
                     # Switch to script dir so main.py finds its relative files
@@ -1006,8 +1075,11 @@ class Bridge:
                                 word_files = glob.glob(os.path.join(out_dir, "*.docx"))
                                 results = []
                                 for wf in word_files:
-                                    results.append({"name": os.path.basename(wf), "path": wf, "type": "file"})
-                                # Add the folder itself as a result too?
+                                    # Only include files created *after* we started this specific task
+                                    # Use a 2-second buffer to handle slight filesystem timestamp variations
+                                    if os.path.getmtime(wf) >= start_time - 2:
+                                        results.append({"name": os.path.basename(wf), "path": wf, "type": "file"})
+                                
                                 # Results will be displayed in UI
                                 self._latest_screenshot_results.extend(results)
 
