@@ -85,28 +85,38 @@ a = Analysis(
         'ctypes',
         'ctypes.wintypes',
     ],
-    hookspath=[],
+    hookspath=['.'],
     hooksconfig={},
-    runtime_hooks=[],
+    runtime_hooks=['hook-exclude-jaraco.py'],
     excludes=[
+        # Data Science Libraries (not needed)
         'pandas', 'numpy', 'matplotlib', 'scipy',
         'scikit-learn', 'scikit-image', 'seaborn',
         'statsmodels', 'xarray', 'tables', 'sympy',
         'PyWavelets', 'patsy', 'numexpr', 'bottleneck',
+        # Web Scraping (external scripts handle this)
         'scrapy', 'playwright', 'selenium', 'w3lib',
-        'beautifulsoup4', 'lxml',
+        'beautifulsoup4',
+        # Development Tools
         'IPython', 'notebook', 'jupyter', 'jupyterlab',
         'spyder', 'sphinx', 'pytest', 'black', 'pylint',
         'mypy', 'flake8', 'coverage',
+        # GUI Frameworks (only using PyWebView)
         'PyQt5', 'PyQt6', 'PySide2', 'PySide6', 
         'qtconsole', 'QDarkStyle', 'QtAwesome',
         'wx', 'wxPython',
+        # Web Frameworks (only using Flask)
         'django', 'fastapi', 'tornado', 'aiohttp',
         'streamlit', 'dash', 'panel', 'holoviews',
         'bokeh', 'altair', 'plotly',
+        # Cloud/AWS
         'boto3', 's3fs', 'botocore', 'aiobotocore',
+        # Large/Unnecessary Libraries
         'twisted', 'xlwings', 'numba', 'cython',
         'tensorflow', 'torch', 'keras',
+        # Problematic packages causing resource loading issues
+        'jaraco', 'jaraco.text', 'jaraco.functools',
+        'importlib_resources', 'importlib_metadata',
     ],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
