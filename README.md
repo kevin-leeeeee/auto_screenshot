@@ -31,76 +31,34 @@
 
 請前往 [Releases](https://github.com/kevin-leeeeee/auto_screenshot/releases) 下載最新版本的壓縮包。
 
-### 建議下載版本:`AutoFlow_Control_Center_v2.1.0_Full.zip`
+### 建議下載版本：`AutoFlow_Control_Center_v2.2.0_Full.zip`
 
 1. 下載並解壓縮。
-2. **目錄結構確認**:請確保您的資料夾結構如下 (不可隨意改名):
+2. **目錄結構確認**: 請確保您的資料夾結構如下 (不可隨意改名):
    ```text
-   AutoFlow_Control_Center_v2.1.0/
-   ├── AutoFlow_Control_Center_v2.1.0.exe  (主程式)
+   AutoFlow_Control_Center_v2.2.0/
+   ├── AutoFlow_Control_Center_v2.2.0.exe  (主程式)
    ├── excel_轉換/                         (Excel 處理腳本)
    └── 截圖腳本/                           (自動截圖腳本)
    ```
-3. 執行 `AutoFlow_Control_Center_v2.1.0.exe`。
+3. 執行 `AutoFlow_Control_Center_v2.2.0.exe`。
 
 ---
 
-## 🛠️ 開發者指南
-
-### 快捷打包與發布
-
-#### 方法 1: 完整發布流程 (推薦)
-
-```powershell
-# 1. 更新版本號
-.\bump_version.bat
-
-# 2. 更新 CHANGELOG.md (手動編輯)
-
-# 3. 提交變更
-git add .
-git commit -m "Bump version to vX.X.X"
-
-# 4. 自動建置並發布到 GitHub
-.\release.bat
-```
-
-#### 方法 2: 僅建置 (不發布)
-
-```powershell
-.\build_release.bat
-```
-
-### 環境需求
-- Python 3.12+ (Conda 環境推薦)
-- Node.js 18+
-- GitHub CLI (用於自動發布)
-
-### 安裝 GitHub CLI
-
-```powershell
-# 使用 winget 安裝
-winget install --id GitHub.cli
-
-# 登入 GitHub
-gh auth login
-```
-
----
-
-## 📁 專案結構 (更新)
+## 📁 專案結構
 
 ```
 AutoFlow_Control_Center/
-├── run_app.py                      # 應用程式主入口
+├── run_app.py                      # 應用程式主入口 (PyWebView 封裝)
 ├── version.txt                     # 版本號管理
 ├── CHANGELOG.md                    # 更新日誌
+├── UPDATE_GUIDE.md                 # 使用者更新指南
+├── DEVELOPER.md                    # 開發者指南 (建置與打包說明)
 ├── bump_version.bat                # 版本號更新工具
-├── build_release.bat               # 建置腳本
-├── release.bat                     # 自動發布腳本
-├── autoflow_onedir.spec            # PyInstaller 打包配置
-├── excel_轉換/                     # 外部 Excel 處理邏輯
-├── 截圖腳本/                       # 外部網頁自動化邏輯
+├── build_release.bat               # 建置腳本 (PyInstaller)
+├── release.bat                     # 自動發布腳本 (gh release)
+├── excel_轉換/                     # 外部 Excel 處理邏輯 (插拔式)
+├── 截圖腳本/                       # 外部網頁自動化邏輯 (插拔式)
 └── autoflow-control-center/        # 前端 React 源碼
 ```
 
