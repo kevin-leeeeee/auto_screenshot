@@ -43,6 +43,8 @@ a = Analysis(
         'PIL._tkinter_finder',
         'PIL.Image',
         'PIL.ImageGrab',
+        'PIL.ImageChops',
+        'PIL.ImageStat',
         
         # PyAutoGUI dependencies
         'pyautogui',
@@ -50,6 +52,16 @@ a = Analysis(
         'pytweening',
         'pymsgbox',
         'pygetwindow',
+        
+        # Standard library submodules often missed
+        'logging.handlers',
+        'dataclasses',
+        'tkinter',
+        'tkinter.filedialog',
+        'tkinter.messagebox',
+        'uuid',
+        'ctypes',
+        'ctypes.wintypes',
     ],
     hookspath=[],
     hooksconfig={},
@@ -97,7 +109,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='AutoFlow_Control_Center_v2.1.0',
+    name='AutoFlow_Control_Center_v2.2.0',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

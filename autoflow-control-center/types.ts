@@ -37,6 +37,7 @@ export interface AutomationConfig {
   bsmiKeywords: string[];
   textCheckEnabled: boolean;
   scrollCapture: boolean;
+  scrollStitch: boolean;
   scrollTimes: number;
   customCategories?: Record<string, string[]>;
   categoryPause?: Record<string, boolean>;

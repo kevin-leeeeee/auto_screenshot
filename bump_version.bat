@@ -10,7 +10,7 @@ echo.
 
 REM 讀取當前版本號
 if not exist "version.txt" (
-    echo 2.1.0>version.txt
+    echo 2.2.0>version.txt
 )
 
 set /p CURRENT=<version.txt
@@ -25,7 +25,7 @@ echo %NEW_VERSION% | findstr /R "^[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$" >nul
 if %ERRORLEVEL% NEQ 0 (
     echo.
     echo ❌ 錯誤: 版本號格式不正確
-    echo 正確格式: X.Y.Z (例如 2.1.0)
+    echo 正確格式: X.Y.Z (例如 2.2.0)
     echo.
     pause
     exit /b 1

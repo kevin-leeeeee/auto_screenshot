@@ -1,24 +1,81 @@
 {
     "stats": {
-        "total_conversions": 0,
-        "total_tasks": 0,
+        "total_conversions": 3,
+        "total_tasks": 7,
         "success_rate": "100%",
-        "time_saved": "0s",
-        "total_seconds": 0.0
+        "time_saved": "56.4s",
+        "total_seconds": 56.4
     },
-    "history": [],
+    "history": [
+        {
+            "id": "#AF-E251F",
+            "name": "任務 (1/1): 1150050010.txt",
+            "status": "Completed",
+            "duration": "12.4s",
+            "time": "10:51 PM",
+            "message": ""
+        },
+        {
+            "id": "#AF-E5D53",
+            "name": "任務 (1/1): 1150050010.txt",
+            "status": "Completed",
+            "duration": "9.2s",
+            "time": "10:51 PM",
+            "message": ""
+        },
+        {
+            "id": "#AF-C511C",
+            "name": "任務 (1/1): 1150050010.txt",
+            "status": "Completed",
+            "duration": "13.1s",
+            "time": "10:43 PM",
+            "message": ""
+        },
+        {
+            "id": "#AF-360B1",
+            "name": "任務 (1/1): 1150050010.txt",
+            "status": "Completed",
+            "duration": "21.6s",
+            "time": "10:42 PM",
+            "message": ""
+        },
+        {
+            "id": "#AF-C2A08",
+            "name": "Excel 轉換 (測試資料.xlsx)",
+            "status": "Completed",
+            "duration": "0.1s",
+            "time": "10:41 PM",
+            "message": ""
+        },
+        {
+            "id": "#AF-57306",
+            "name": "Excel 轉換 (測試資料.xlsx)",
+            "status": "Completed",
+            "duration": "0.0s",
+            "time": "10:38 PM",
+            "message": ""
+        },
+        {
+            "id": "#AF-3937E",
+            "name": "Excel 轉換 (測試資料.xlsx)",
+            "status": "Completed",
+            "duration": "0.0s",
+            "time": "10:26 PM",
+            "message": ""
+        }
+    ],
     "settings": {
         "config": {
             "waitPerPage": {
                 "min": 3,
-                "max": 5
+                "max": 3
             },
-            "screenshotDelay": 3,
+            "screenshotDelay": 0,
             "cropEnabled": true,
             "cropTop": 0,
             "cropBottom": 0,
             "range": "viewport",
-            "batchRestEnabled": false,
+            "batchRestEnabled": true,
             "batchSize": 8,
             "batchRestRange": {
                 "min": 20,
@@ -33,8 +90,9 @@
             "autoWordExport": true,
             "skipDone": false,
             "textCheckEnabled": false,
-            "scrollCapture": true,
-            "scrollTimes": 1,
+            "scrollCapture": false,
+            "scrollStitch": true,
+            "scrollTimes": 4,
             "customCategories": {},
             "categoryPause": {
                 "拼圖與人機驗證": true,
@@ -44,37 +102,58 @@
             },
             "captchaKeywords": [
                 "驗證碼",
-                "recaptcha",
-                "turnstile"
+                "人機驗證",
+                "我不是機器人",
+                "captcha",
+                "verify",
+                "請驗證您是人類",
+                "安全驗證",
+                "驗證資訊失敗",
+                "拼圖",
+                "puzzle",
+                "robot",
+                "automated",
+                "rate limit",
+                "verification",
+                "滑動圖塊",
+                "完成驗證",
+                "安全性驗證"
             ],
             "notFoundKeywords": [
-                "不存在",
-                "查無資料",
-                "No result",
-                "404"
+                "商品不存在",
+                "已下架",
+                "找不到商品",
+                "商品已刪除",
+                "商品已下架"
             ],
             "loginKeywords": [
                 "登入",
-                "Login",
-                "Sign in",
+                "登錄",
+                "sign in",
+                "log in",
+                "login",
+                "會員登入",
                 "帳號",
                 "密碼"
             ],
             "bsmiKeywords": [
-                "BSMI",
-                "檢驗",
-                "證書",
-                "標準檢驗局"
+                "bsmi",
+                "b s m i",
+                "商品檢驗標識"
             ],
-            "inputFile": "C:/Users/HP_600_G1_2ND/Desktop/工作自動化/excel_轉換/output/2026-01-12_15-13-02/1150050011.txt",
-            "inputFileDisplay": "1150050011.txt",
-            "inputFiles": [],
-            "cropPixels": 0
+            "inputFiles": [
+                {
+                    "path": "c:\\Users\\HP_600_G1_2ND\\Desktop\\工作自動化\\excel_轉換\\output\\2026-01-14_22-41-54\\1150050010.txt",
+                    "name": "1150050010.txt",
+                    "urlCount": 3
+                }
+            ]
         },
         "display": {
             "theme": "light",
-            "fontSize": 3
+            "fontSize": 2
         },
         "jobQueue": []
-    }
+    },
+    "queueCollapsed": false
 }

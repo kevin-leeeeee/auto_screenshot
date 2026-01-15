@@ -14,7 +14,7 @@ import PIL.ImageStat
 import pyautogui
 
 # Version Information
-CURRENT_VERSION = "v2.2.0"
+CURRENT_VERSION = "v2.3.0"
 REPO_NAME = "kevin-leeeeee/auto_screenshot"
 
 # Backend script paths with validation

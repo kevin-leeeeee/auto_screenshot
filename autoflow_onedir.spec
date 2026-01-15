@@ -4,6 +4,14 @@
 
 block_cipher = None
 
+# ========== 讀取版本號 ==========
+import os
+version = "unknown"
+if os.path.exists("version.txt"):
+    with open("version.txt", "r") as f:
+        version = f.read().strip()
+app_name = f'AutoFlow_Control_Center_v{version}'
+
 a = Analysis(
     ['run_app.py'],
     pathex=[],
@@ -13,15 +21,13 @@ a = Analysis(
         ('autoflow-control-center/dist', 'autoflow-control-center/dist'),
     ],
     hiddenimports=[
-        # PyWebView critical imports (Windows backends)
+        # ... (keep all existing imports) ...
         'engineio.async_drivers.threading',
         'webview',
         'webview.platforms.winforms',
         'webview.platforms.edgechromium',
         'webview.platforms.edgehtml',
         'webview.platforms.mshtml',
-        
-        # pythonnet (required for PyWebView on Windows)
         'clr',
         'clr_loader',
         'pythonnet',
@@ -29,73 +35,58 @@ a = Analysis(
         'System.Windows.Forms',
         'System.Threading',
         'System.Drawing',
-        
-        # Flask and web server dependencies
         'flask',
         'flask.json',
         'werkzeug',
         'werkzeug.serving',
         'jinja2',
-        
-        # Excel processing
         'openpyxl',
         'openpyxl.cell',
         'openpyxl.styles',
-        
-        # Word document generation
         'docx',
         'docx.shared',
         'docx.enum.text',
-        
-        # Image processing
         'PIL._tkinter_finder',
         'PIL.Image',
         'PIL.ImageGrab',
-        
-        # Automation dependencies
+        'PIL.ImageChops',
+        'PIL.ImageStat',
         'pyautogui',
         'pyscreeze',
         'pytweening',
         'pymsgbox',
         'pygetwindow',
-        
-        # HTTP requests (for update check)
         'requests',
         'urllib3',
+        'logging.handlers',
+        'dataclasses',
+        'tkinter',
+        'tkinter.filedialog',
+        'tkinter.messagebox',
+        'uuid',
+        'ctypes',
+        'ctypes.wintypes',
     ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[
-        # Data Science Libraries (not needed)
         'pandas', 'numpy', 'matplotlib', 'scipy',
         'scikit-learn', 'scikit-image', 'seaborn',
         'statsmodels', 'xarray', 'tables', 'sympy',
         'PyWavelets', 'patsy', 'numexpr', 'bottleneck',
-        
-        # Web Scraping (external scripts handle this)
         'scrapy', 'playwright', 'selenium', 'w3lib',
         'beautifulsoup4', 'lxml',
-        
-        # Development Tools
         'IPython', 'notebook', 'jupyter', 'jupyterlab',
         'spyder', 'sphinx', 'pytest', 'black', 'pylint',
         'mypy', 'flake8', 'coverage',
-        
-        # GUI Frameworks (only using PyWebView)
         'PyQt5', 'PyQt6', 'PySide2', 'PySide6', 
         'qtconsole', 'QDarkStyle', 'QtAwesome',
         'wx', 'wxPython',
-        
-        # Web Frameworks (only using Flask)
         'django', 'fastapi', 'tornado', 'aiohttp',
         'streamlit', 'dash', 'panel', 'holoviews',
         'bokeh', 'altair', 'plotly',
-        
-        # Cloud/AWS
         'boto3', 's3fs', 'botocore', 'aiobotocore',
-        
-        # Large/Unnecessary Libraries
         'twisted', 'xlwings', 'numba', 'cython',
         'tensorflow', 'torch', 'keras',
     ],
@@ -112,7 +103,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='AutoFlow_Control_Center_v2.2.0',
+    name=app_name,
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -133,19 +124,15 @@ coll = COLLECT(
     strip=False,
     upx=True,  # Enable UPX for binaries
     upx_exclude=[
-        # Exclude critical DLLs from UPX compression to avoid corruption
         'vcruntime*.dll',
         'python*.dll',
         'pythonnet.dll',
         'clr.pyd',
         'System.*.dll',
-        # PyWebView related
         'webview.*.dll',
-        # Image processing
         'PIL.*.pyd',
         '_imaging.pyd',
-        # Avoid antivirus false positives
         'api-ms-win-*.dll',
     ],
-    name='AutoFlow_Control_Center_v2.2.0',
+    name=app_name,
 )

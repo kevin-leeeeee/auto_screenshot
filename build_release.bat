@@ -3,17 +3,24 @@ setlocal enabledelayedexpansion
 chcp 65001 >nul
 
 REM ==========================================
-REM   AutoFlow 自動打包與發布整理腳本 (v2.1.0)
+REM   AutoFlow 自動打包與發布整理腳本 (v2.2.0)
 REM   優化版 - 含環境檢查與錯誤處理
 REM ==========================================
 
-set APP_NAME=AutoFlow_Control_Center_v2.1.0
+REM ========== 讀取版本號 ==========
+if not exist "version.txt" (
+    echo [錯誤] 找不到 version.txt
+    pause
+    exit /b 1
+)
+set /p VERSION=<version.txt
+set APP_NAME=AutoFlow_Control_Center_v%VERSION%
 set DIST_PATH=dist\%APP_NAME%
 set START_TIME=%TIME%
 
 echo.
 echo ╔════════════════════════════════════════════════════════════╗
-echo ║  AutoFlow Control Center - 自動建置腳本 v2.1.0            ║
+echo ║  AutoFlow Control Center - 自動建置腳本 v%VERSION%            ║
 echo ╚════════════════════════════════════════════════════════════╝
 echo.
 
@@ -146,7 +153,7 @@ if exist "dist\%APP_NAME%_Full.zip" (
     del /f /q "dist\%APP_NAME%_Full.zip"
 )
 
-powershell -Command "Compress-Archive -Path '%DIST_PATH%' -DestinationPath 'dist\%APP_NAME%_Full.zip' -CompressionLevel Optimal -Force"
+REM powershell -Command "Compress-Archive -Path '%DIST_PATH%' -DestinationPath 'dist\%APP_NAME%_Full.zip' -CompressionLevel Optimal -Force"
 if %ERRORLEVEL% NEQ 0 (
     echo [警告] 壓縮檔建立失敗，但程式檔案已準備完成
 ) else (
@@ -171,7 +178,7 @@ echo 📊 壓縮包大小: !SIZE_MB! MB
 echo 📁 程式目錄: %DIST_PATH%\
 echo.
 echo 🎯 下一步:
-echo    1. 測試執行檔: cd %DIST_PATH% ^&^& AutoFlow_Control_Center_v2.1.0.exe
+echo    1. 測試執行檔: cd %DIST_PATH% ^&^& %APP_NAME%.exe
 echo    2. 上傳到 GitHub Releases
 echo.
 

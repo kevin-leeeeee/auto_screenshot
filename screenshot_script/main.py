@@ -274,6 +274,7 @@ def capture_image(cfg: RunConfig, outpath: Path) -> tuple[object | None, bool]:
                 scroll_pagedown_times=cfg.scroll_pagedown_times,
                 crop_top=cfg.crop_top_px,
                 crop_bottom=cfg.crop_bottom_px,
+                scroll_stitch=cfg.scroll_stitch,
                 capture_window=cfg.capture_window,
             )
         else:
@@ -600,6 +601,8 @@ def run_from_api(should_stop_callback, config_overrides=None, progress_callback=
             cfg.text_check_enabled = config_overrides["text_check_enabled"]
         if "scroll_capture" in config_overrides:
             cfg.scroll_capture = config_overrides["scroll_capture"]
+        if "scroll_stitch" in config_overrides:
+            cfg.scroll_stitch = config_overrides["scroll_stitch"]
         if "crop_top_px" in config_overrides:
             cfg.crop_top_px = config_overrides["crop_top_px"]
             cfg.crop_enabled = True # Auto enable crop if px is set

@@ -41,6 +41,7 @@ TOOLTIP_ALPHA = 0.75
 WEBPAGE_TOP_CROP_PX_DEFAULT = 120
 WEBPAGE_BOTTOM_CROP_PX_DEFAULT = 0
 SCROLL_CAPTURE_WAIT_SECONDS = 0.6
+SCROLL_STITCH_DEFAULT = True
 OCR_LANG = "chi_tra+eng"
 PREFS_FILE = "preferences.json"
 
@@ -93,6 +94,7 @@ class RunConfig:
     scroll_pagedown_times: int = SCROLL_CAPTURE_PAGEDOWN_TIMES_DEFAULT
     crop_top_px: int = WEBPAGE_TOP_CROP_PX_DEFAULT
     crop_bottom_px: int = WEBPAGE_BOTTOM_CROP_PX_DEFAULT
+    scroll_stitch: bool = SCROLL_STITCH_DEFAULT
     batch_size: int = BATCH_SIZE
     batch_rest_range: tuple[int, int] = BATCH_REST_RANGE
     word_path: str | Path | None = None

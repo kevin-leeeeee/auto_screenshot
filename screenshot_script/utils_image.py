@@ -1,12 +1,8 @@
+from __future__ import annotations
 import pyautogui
 from pathlib import Path
-try:
-    from PIL import Image, ImageGrab, ImageChops, ImageStat
-except Exception:
-    Image = None
-    ImageGrab = None
-    ImageChops = None
-    ImageStat = None
+from typing import Optional, Union, Tuple
+from PIL import Image, ImageGrab, ImageChops, ImageStat
 try:
     import pygetwindow as gw
 except Exception:
@@ -18,7 +14,7 @@ from utils_system import focus_browser_window, click_window_corner, looks_like_u
 from logger_setup import logger
 from config import SCROLL_CAPTURE_MULTIPLIER, SCROLL_SIMILARITY_THRESHOLD, SCROLL_CAPTURE_WAIT_SECONDS
 
-def image_similarity(img1: Image.Image, img2: Image.Image) -> float:
+def image_similarity(img1: "Image.Image", img2: "Image.Image") -> float:
     """
     計算兩張圖片的相似度 (0.0 ~ 1.0)。
     會先將圖片縮放至相同大小，再計算差異。
@@ -38,7 +34,7 @@ def image_similarity(img1: Image.Image, img2: Image.Image) -> float:
     mean = sum(stat.mean) / len(stat.mean)
     return max(0.0, 1.0 - (mean / 255.0))
 
-def capture_active_window() -> Image.Image | None:
+def capture_active_window() -> Optional["Image.Image"]:
     """
     截取目前作用中視窗的畫面。
     """
@@ -52,7 +48,7 @@ def capture_active_window() -> Image.Image | None:
         return None
     return ImageGrab.grab(bbox=(left, top, right, bottom))
 
-def crop_webpage_area(img: Image.Image, top_px: int, bottom_px: int) -> Image.Image:
+def crop_webpage_area(img: "Image.Image", top_px: int, bottom_px: int) -> "Image.Image":
     """
     裁切圖片的頂部與底部。
     """
@@ -113,7 +109,7 @@ def get_clipboard_text_ctypes() -> str:
     finally:
         user32.CloseClipboard()
 
-def extract_text_content(region: tuple[int, int, int, int] | None = None) -> str:
+def extract_text_content(region: Optional[tuple[int, int, int, int]] = None) -> str:
     """
     Extract text content using clipboard (Ctrl+A).
     """
@@ -201,11 +197,12 @@ def capture_scrolling_page(
     scroll_pagedown_times: int,
     crop_top: int,
     crop_bottom: int,
+    scroll_stitch: bool = True,
     capture_window: bool = False,
     similarity_threshold: float = SCROLL_SIMILARITY_THRESHOLD,
     max_pages: int = SCROLL_CAPTURE_MULTIPLIER,
     wait_seconds: float = SCROLL_CAPTURE_WAIT_SECONDS,
-) -> tuple[Image.Image, bool]:
+) -> Tuple["Image.Image", bool]:
     """
     執行捲動截圖並合併。
     
@@ -257,11 +254,12 @@ def capture_scrolling_page(
         return shots[0], used_window_mode
 
     # Stitch images
-    total_height = sum(img.height for img in shots)
-    merged = Image.new("RGB", (shots[0].width, total_height))
+    gap = 20 if not scroll_stitch else 0
+    total_height = sum(img.height for img in shots) + (gap * (len(shots) - 1))
+    merged = Image.new("RGB", (shots[0].width, total_height), color=(255, 255, 255) if gap > 0 else (0, 0, 0))
     y = 0
-    for img in shots:
+    for i, img in enumerate(shots):
         merged.paste(img, (0, y))
-        y += img.height
+        y += img.height + gap
     
     return merged, used_window_mode

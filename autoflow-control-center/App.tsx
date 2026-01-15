@@ -73,13 +73,10 @@ const App: React.FC = () => {
     fontSize: 2,
   });
 
-  const [jobQueue, setJobQueue] = useState<any[]>([]);
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [taskStatus, setTaskStatus] = useState<TaskStatus>({ processed: 0, total: 0, status: 'idle' });
   const [history, setHistory] = useState<any[]>([]); // Lifted history state
   const [toasts, setToasts] = useState<any[]>([]);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
-  const [isQueueCollapsed, setIsQueueCollapsed] = useState(false);
   const lastErrorCount = React.useRef(0);
 
   // Apply display settings
@@ -165,18 +162,6 @@ const App: React.FC = () => {
     `;
   }, [displaySettings]);
 
-  // Save queue collapse state to backend
-  useEffect(() => {
-    const saveCollapseState = async () => {
-      // @ts-ignore
-      if (window.pywebview?.api) {
-        // @ts-ignore
-        await window.pywebview.api.set_queue_collapsed(isQueueCollapsed);
-      }
-    };
-    saveCollapseState();
-  }, [isQueueCollapsed]);
-
   // Load settings on startup
   useEffect(() => {
     const loadSettings = async () => {
@@ -186,10 +171,7 @@ const App: React.FC = () => {
         const state = await window.pywebview.api.get_app_state();
         if (state.version) setAppVersion(state.version);
 
-        // 載入待執行清單收合狀態
-        if (typeof state.queueCollapsed === 'boolean') {
-          setIsQueueCollapsed(state.queueCollapsed);
-        }
+        // 載入設定
 
         if (state.settings) {
           if (state.settings.config) {
@@ -242,7 +224,6 @@ const App: React.FC = () => {
             setConfig(prev => ({ ...prev, ...loadedConfig }));
           }
           if (state.settings.display) setDisplaySettings(prev => ({ ...prev, ...state.settings.display }));
-          if (state.settings.jobQueue) setJobQueue(state.settings.jobQueue);
         }
 
         // Check for updates
@@ -322,13 +303,12 @@ const App: React.FC = () => {
         // @ts-ignore
         await window.pywebview.api.save_settings({
           config,
-          display: displaySettings,
-          jobQueue
+          display: displaySettings
         });
       }
     };
     saveSettings();
-  }, [config, displaySettings, jobQueue]);
+  }, [config, displaySettings]);
 
   const handleSaveConfig = (newConfig: AutomationConfig) => {
     setConfig(newConfig);
@@ -344,23 +324,7 @@ const App: React.FC = () => {
     setIsLogOpen(true);
   };
 
-  // HTML5 Drag & Drop handlers
-  const handleDragStart = (idx: number) => {
-    setDraggedIndex(idx);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = (idx: number) => {
-    if (draggedIndex === null) return;
-    const newQueue = [...jobQueue];
-    const [movedItem] = newQueue.splice(draggedIndex, 1);
-    newQueue.splice(idx, 0, movedItem);
-    setJobQueue(newQueue);
-    setDraggedIndex(null);
-  };
+  // HTML5 Drag & Drop handlers (Removed)
 
   const handleCheckUpdate = async () => {
     // @ts-ignore
@@ -417,8 +381,7 @@ const App: React.FC = () => {
               onShowLogs={handleShowLogs}
               config={config}
               onUpdateConfig={handleUpdateConfig}
-              jobQueue={jobQueue}
-              setJobQueue={setJobQueue}
+              taskStatus={taskStatus}
             />
           )}
           {currentView === 'logs' && <Logs history={history} onRefresh={() => { }} />}
@@ -535,172 +498,7 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      {/* Right Quick Action Panel -> Job Queue */}
-      <aside className={`bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 hidden xl:flex flex-col transition-all duration-500 ease-in-out overflow-hidden shadow-[-10px_0_15px_-3px_rgba(0,0,0,0.02)] ${isQueueCollapsed ? 'w-16 p-3 items-center' : 'w-80 p-6'}`}>
-        <div className={`flex items-center mb-8 shrink-0 transition-all duration-300 ${isQueueCollapsed ? 'flex-col gap-4 justify-center w-full' : 'justify-between'}`}>
-          {!isQueueCollapsed ? (
-            <div className="flex flex-col animate-in fade-in slide-in-from-left-2 duration-300">
-              <h3 className="text-xl font-black dark:text-white">待執行清單</h3>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Job Queue</p>
-            </div>
-          ) : (
-            <div className="size-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 text-[10px] font-black animate-in zoom-in duration-300">
-              {jobQueue.length}
-            </div>
-          )}
-
-          <div className={`flex items-center gap-2 ${isQueueCollapsed ? 'flex-col' : ''}`}>
-            {!isQueueCollapsed && (
-              <span className="bg-blue-100 text-blue-600 text-[10px] font-bold px-2.5 py-1 rounded-full dark:bg-blue-900/30 dark:text-blue-400 animate-in fade-in zoom-in duration-300">
-                {jobQueue.length} 個項目
-              </span>
-            )}
-            <button
-              onClick={() => setIsQueueCollapsed(!isQueueCollapsed)}
-              className={`p-2 rounded-xl transition-all ${isQueueCollapsed ? 'hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400'}`}
-              title={isQueueCollapsed ? '展開面板' : '收起面板'}
-            >
-              <span className="material-symbols-outlined text-xl leading-none block">
-                {isQueueCollapsed ? 'chevron_left' : 'last_page'}
-              </span>
-            </button>
-          </div>
-        </div>
-
-        {!isQueueCollapsed && (
-          <div className="flex-1 flex flex-col min-h-0 min-w-[272px] animate-in fade-in slide-in-from-right-4 duration-500">
-            <div className="flex-1 flex flex-col min-h-0 bg-slate-50 dark:bg-slate-800/20 rounded-2xl border border-slate-100 dark:border-slate-800/50 p-1">
-              {(jobQueue.length === 0) ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-4">
-                  <span className="material-symbols-outlined text-4xl mb-2 opacity-20">playlist_add</span>
-                  <p className="text-sm font-bold opacity-50">尚無排定工作</p>
-                  <p className="text-xs mt-1 text-center opacity-40 max-w-[150px]">請從左側「自動截圖」卡片中選擇輸入檔案</p>
-                </div>
-              ) : (
-                <div className="flex-1 overflow-y-auto no-scrollbar p-3 space-y-3">
-                  {jobQueue.map((file, idx) => (
-                    <div
-                      key={idx}
-                      draggable
-                      onDragStart={() => handleDragStart(idx)}
-                      onDragOver={handleDragOver}
-                      onDrop={() => handleDrop(idx)}
-                      className={`flex items-start gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border ${draggedIndex === idx ? 'opacity-50 border-blue-500' : 'border-slate-100 dark:border-slate-700'} shadow-sm group hover:border-blue-500/30 transition-all cursor-grab active:cursor-grabbing`}
-                    >
-                      <div className="size-6 rounded bg-slate-100 dark:bg-slate-700 text-slate-500 flex items-center justify-center shrink-0 text-xs font-bold font-mono mt-0.5">
-                        {idx + 1}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">{file.name}</p>
-                        <p className="text-[10px] text-slate-400 font-mono mt-0.5">
-                          {taskStatus.status === 'running' && idx === 0 ? '執行中...' : '等候中...'}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => {
-                          const newQueue = [...jobQueue];
-                          newQueue.splice(idx, 1);
-                          setJobQueue(newQueue);
-                        }}
-                        className="text-slate-300 hover:text-red-500 transition-colors"
-                      >
-                        <span className="material-symbols-outlined text-sm">close</span>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
-              {/* Progress Bar Area */}
-              {taskStatus.status === 'running' && (
-                <div className="p-4 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl space-y-3 border border-blue-100 dark:border-blue-900/30">
-                  <div className="flex justify-between items-end">
-                    <div className="flex flex-col">
-                      <p className="text-[10px] font-black text-blue-600 uppercase tracking-tighter">正在執行任務</p>
-                      <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
-                        檔案 {taskStatus.current_file} / {taskStatus.total_files}
-                      </p>
-                    </div>
-                    <p className="text-[10px] font-mono text-slate-400">
-                      {taskStatus.total > 0 ? Math.round((taskStatus.processed / taskStatus.total) * 100) : 0}%
-                    </p>
-                  </div>
-                  <div className="h-2 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-blue-600 shadow-[0_0_10px_rgba(37,99,235,0.4)] transition-all duration-500 ease-out relative"
-                      style={{ width: `${taskStatus.total > 0 ? (taskStatus.processed / taskStatus.total) * 100 : 0}%` }}
-                    >
-                      <div className="absolute inset-0 bg-white/20 animate-pulse" />
-                    </div>
-                  </div>
-                  <p className="text-[9px] text-center text-slate-400 font-mono italic">
-                    {taskStatus.processed} / {taskStatus.total} 條網址已完成
-                  </p>
-                </div>
-              )}
-
-              <div className="flex justify-between items-center text-xs text-slate-500 font-medium pb-2">
-                <span>預估完成時間</span>
-                <span className="font-mono text-slate-900 dark:text-slate-200">
-                  {(() => {
-                    if (jobQueue.length === 0) return '--';
-
-                    // 1. Calculate total URLs remaining in queue
-                    let totalUrls = 0;
-
-                    // If running, subtract processed from current file
-                    if (taskStatus.status === 'running') {
-                      const currentFileUrls = jobQueue[0]?.urlCount || 0;
-                      totalUrls += Math.max(0, currentFileUrls - taskStatus.processed);
-                      // Add other files in queue
-                      for (let i = 1; i < jobQueue.length; i++) {
-                        totalUrls += jobQueue[i].urlCount || 0;
-                      }
-                    } else {
-                      // Not running, just sum all
-                      jobQueue.forEach(f => { totalUrls += f.urlCount || 0; });
-                    }
-
-                    if (totalUrls === 0) return '--';
-
-                    // 2. Average time per URL (wait + delay + buffer)
-                    const avgWait = (config.waitPerPage.min + config.waitPerPage.max) / 2;
-                    const totalTimePerUrl = avgWait + config.screenshotDelay + 4.5; // 4.5s overhead
-
-                    const totalSeconds = totalUrls * totalTimePerUrl;
-
-                    const hours = Math.floor(totalSeconds / 3600);
-                    const minutes = Math.floor((totalSeconds % 3600) / 60);
-
-                    if (hours > 0) return `${hours}時 ${minutes}分`;
-                    return `${minutes} 分鐘`;
-                  })()}
-                </span>
-              </div>
-
-              <button
-                onClick={async () => {
-                  // @ts-ignore
-                  if (window.pywebview?.api) {
-                    const queueConfig = { ...config, inputFiles: jobQueue };
-                    // @ts-ignore
-                    const res = await window.pywebview.api.start_screenshot(queueConfig);
-                    if (res.status === 'error') {
-                      alert(res.message);
-                    }
-                  }
-                }}
-                disabled={jobQueue.length === 0 || taskStatus.status === 'running'}
-                className="w-full py-4 bg-slate-900 dark:bg-blue-600 text-white rounded-xl text-sm font-black shadow-xl shadow-slate-200 dark:shadow-blue-900/20 hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50 disabled:bg-slate-300 disabled:dark:bg-slate-800 disabled:shadow-none"
-              >
-                {taskStatus.status === 'running' ? '自動流程執行中...' : '立即開始'}
-              </button>
-            </div>
-          </div>
-        )}
-      </aside>
+      {/* Right Quick Action Panel Removed in v2.3.0 */}
     </div>
   );
 };
