@@ -1,12 +1,28 @@
 {
     "stats": {
         "total_conversions": 3,
-        "total_tasks": 7,
+        "total_tasks": 9,
         "success_rate": "100%",
-        "time_saved": "56.4s",
-        "total_seconds": 56.4
+        "time_saved": "1m 29s",
+        "total_seconds": 89.19999999999999
     },
     "history": [
+        {
+            "id": "#AF-B153E",
+            "name": "任務 (1/1): 1150050010.txt",
+            "status": "Completed",
+            "duration": "18.4s",
+            "time": "02:12 PM",
+            "message": ""
+        },
+        {
+            "id": "#AF-EFAE3",
+            "name": "任務 (1/1): 1150050010.txt",
+            "status": "Completed",
+            "duration": "14.4s",
+            "time": "01:15 PM",
+            "message": ""
+        },
         {
             "id": "#AF-E251F",
             "name": "任務 (1/1): 1150050010.txt",
