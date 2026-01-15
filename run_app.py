@@ -23,11 +23,11 @@ if getattr(sys, 'frozen', False):
     BASE_DIR = Path(sys.executable).parent.absolute()
     # Path to internal dist files (PyInstaller magic)
     RESOURCE_DIR = Path(sys._MEIPASS)
-    DIST_DIR = RESOURCE_DIR / "autoflow-control-center" / "dist"
+    DIST_DIR = RESOURCE_DIR / "autoflow" / "dist"
 else:
     # If running from source
     BASE_DIR = Path(__file__).parent.absolute()
-    DIST_DIR = BASE_DIR / "autoflow-control-center" / "dist"
+    DIST_DIR = BASE_DIR / "autoflow" / "dist"
 
 EXCEL_DIR = BASE_DIR / "excel_轉換"
 # Prioritize 'screenshot_script' for source mode, '截圖腳本' for frozen mode
@@ -1153,7 +1153,7 @@ if __name__ == "__main__":
         sys.exit(1)
     
     if not DIST_DIR.exists():
-        print("Error: 'dist' folder not found. Please run 'npm run build' inside autoflow-control-center first.")
+        print("Error: 'dist' folder not found. Please run 'npm run build' inside autoflow first.")
         sys.exit(1)
 
     # Start light server in background

@@ -58,7 +58,7 @@ AutoFlow_Control_Center/
 ├── docs/                          # 文檔資料夾
 ├── excel_轉換/                     # 外部 Excel 處理邏輯 (插拔式)
 ├── 截圖腳本/                       # 外部網頁自動化邏輯 (插拔式)
-└── autoflow-control-center/        # 前端 React 源碼
+└── autoflow/                       # 前端 React 源碼
 ```
 
 ---

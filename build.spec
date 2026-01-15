@@ -23,7 +23,7 @@ for sp in site.getsitepackages():
 
 # ========== 準備 binaries 和 datas ==========
 binaries_list = []
-datas_list = [('autoflow-control-center/dist', 'autoflow-control-center/dist')]
+datas_list = [('autoflow/dist', 'autoflow/dist')]
 
 if pythonnet_path:
     runtime_path = os.path.join(pythonnet_path, 'runtime')

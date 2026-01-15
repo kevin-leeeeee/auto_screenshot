@@ -55,8 +55,8 @@ REM 更新 README.md 中的版本號
 powershell -Command "(Get-Content 'README.md') -replace 'v[0-9.]+', 'v%NEW_VERSION%' | Set-Content 'README.md'"
 
 REM 更新 package.json 中的版本號 (如果存在)
-if exist "autoflow-control-center\package.json" (
-    powershell -Command "$json = Get-Content 'autoflow-control-center\package.json' | ConvertFrom-Json; $json.version = '%NEW_VERSION%'; $json | ConvertTo-Json -Depth 10 | Set-Content 'autoflow-control-center\package.json'"
+if exist "autoflow\package.json" (
+    powershell -Command "$json = Get-Content 'autoflow\package.json' | ConvertFrom-Json; $json.version = '%NEW_VERSION%'; $json | ConvertTo-Json -Depth 10 | Set-Content 'autoflow\package.json'"
 )
 
 echo.
@@ -66,8 +66,8 @@ echo 📝 已更新的檔案:
 echo   - version.txt
 echo   - run_app.py
 echo   - README.md
-if exist "autoflow-control-center\package.json" (
-    echo   - autoflow-control-center\package.json
+if exist "autoflow\package.json" (
+    echo   - autoflow\package.json
 )
 echo.
 echo 💡 下一步:

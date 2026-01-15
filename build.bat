@@ -54,8 +54,8 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 REM 檢查前端目錄
-if not exist "autoflow-control-center" (
-    echo [錯誤] 找不到前端目錄 autoflow-control-center
+if not exist "autoflow" (
+    echo [錯誤] 找不到前端目錄 autoflow
     pause
     exit /b 1
 )
@@ -70,7 +70,7 @@ REM ========== 前端建置 ==========
 echo [1/6] 建置 React 前端...
 echo.
 
-cd autoflow-control-center
+cd autoflow
 if not exist "package.json" (
     echo [錯誤] 找不到 package.json
     cd ..

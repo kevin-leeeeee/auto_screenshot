@@ -12,7 +12,7 @@
 - GitHub CLI (用於自動化發布發布至 Releases)
 
 ### 推薦開發流程
-1. **前端**: 進入 `autoflow-control-center` 目錄，執行 `npm run dev` 啟動開發伺服器。
+1. **前端**: 進入 `autoflow` 目錄，執行 `npm run dev` 啟動開發伺服器。
 2. **後端**: 執行 `python run_app.py` 啟動主程式（預設會連結至本地開發伺服器或編譯後的 dist）。
 
 ---
@@ -52,7 +52,7 @@ git commit -m "Bump version to vX.X.X"
 - `run_app.py`: 核心入口，負責 PyWebView 與 Python API 橋接。
 - `autoflow.spec`: PyInstaller 打包設定檔。
 - `excel_轉換/` & `截圖腳本/`: 插拔式邏輯目錄，會被複製到 Release 同級目錄下。
-- `autoflow-control-center/`: React 前端源碼目錄。
+- `autoflow/`: React 前端源碼目錄。
 
 ---
 
