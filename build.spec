@@ -6,20 +6,38 @@ block_cipher = None
 
 # ========== 讀取版本號 ==========
 import os
+import site
 version = "unknown"
 if os.path.exists("version.txt"):
     with open("version.txt", "r") as f:
         version = f.read().strip()
 app_name = f'AutoFlow_Control_Center_v{version}'
 
+# ========== 找到 pythonnet 路徑 ==========
+pythonnet_path = None
+for sp in site.getsitepackages():
+    potential_path = os.path.join(sp, 'pythonnet')
+    if os.path.exists(potential_path):
+        pythonnet_path = potential_path
+        break
+
+# ========== 準備 binaries 和 datas ==========
+binaries_list = []
+datas_list = [('autoflow-control-center/dist', 'autoflow-control-center/dist')]
+
+if pythonnet_path:
+    runtime_path = os.path.join(pythonnet_path, 'runtime')
+    if os.path.exists(runtime_path):
+        # 添加所有 runtime DLL
+        binaries_list.append((os.path.join(runtime_path, '*.dll'), 'pythonnet/runtime'))
+        # 添加整個 runtime 目錄
+        datas_list.append((runtime_path, 'pythonnet/runtime'))
+
 a = Analysis(
     ['run_app.py'],
     pathex=[],
-    binaries=[],
-    datas=[
-        # React frontend build output
-        ('autoflow-control-center/dist', 'autoflow-control-center/dist'),
-    ],
+    binaries=binaries_list,
+    datas=datas_list,
     hiddenimports=[
         # ... (keep all existing imports) ...
         'engineio.async_drivers.threading',

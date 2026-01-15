@@ -152,8 +152,7 @@
         "display": {
             "theme": "light",
             "fontSize": 2
-        },
-        "jobQueue": []
+        }
     },
     "queueCollapsed": false
 }

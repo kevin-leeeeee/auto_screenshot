@@ -52,8 +52,10 @@ AutoFlow_Control_Center/
 ├── UPDATE_GUIDE.md                 # 使用者更新指南
 ├── DEVELOPER.md                    # 開發者指南 (建置與打包說明)
 ├── bump_version.bat                # 版本號更新工具
-├── build_release.bat               # 建置腳本 (PyInstaller)
+├── build.bat                      # 建置腳本 (PyInstaller)
 ├── release.bat                     # 自動發布腳本 (gh release)
+├── build.spec                     # PyInstaller 配置
+├── docs/                          # 文檔資料夾
 ├── excel_轉換/                     # 外部 Excel 處理邏輯 (插拔式)
 ├── 截圖腳本/                       # 外部網頁自動化邏輯 (插拔式)
 └── autoflow-control-center/        # 前端 React 源碼

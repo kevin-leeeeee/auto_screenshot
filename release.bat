@@ -69,7 +69,7 @@ REM ========== 建置 ==========
 echo [1/4] 開始建置...
 echo.
 
-call build_release.bat
+call build.bat
 
 if %ERRORLEVEL% NEQ 0 (
     echo.

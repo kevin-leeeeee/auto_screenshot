@@ -42,7 +42,7 @@ git commit -m "Bump version to vX.X.X"
 僅生成 `.exe` 或資料夾版本供測試。
 
 ```powershell
-.\build_release.bat
+.\build.bat
 ```
 
 ---

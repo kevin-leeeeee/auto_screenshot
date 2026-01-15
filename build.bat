@@ -110,7 +110,7 @@ REM ========== PyInstaller 打包 ==========
 echo [3/6] 執行 PyInstaller 打包 (One-Directory 模式)...
 echo.
 
-call pyinstaller --clean autoflow_onedir.spec --noconfirm
+call pyinstaller --clean build.spec --noconfirm
 if %ERRORLEVEL% NEQ 0 (
     echo [錯誤] PyInstaller 打包失敗
     pause
