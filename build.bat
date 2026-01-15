@@ -127,6 +127,11 @@ echo.
 REM 建立目錄
 if not exist "%DIST_PATH%\excel_轉換" mkdir "%DIST_PATH%\excel_轉換"
 if not exist "%DIST_PATH%\截圖腳本" mkdir "%DIST_PATH%\截圖腳本"
+if not exist "%DIST_PATH%\ui" mkdir "%DIST_PATH%\ui"
+
+REM 複製前端介面 (插拔式 UI)
+echo 複製前端介面至 ui 目錄...
+xcopy /E /I /Y /Q "autoflow\dist\*.*" "%DIST_PATH%\ui\" >nul
 
 REM 複製 Excel 轉換腳本 (排除不必要的檔案)
 echo 複製 excel_轉換...

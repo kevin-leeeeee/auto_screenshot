@@ -449,7 +449,7 @@ const App: React.FC = () => {
           ))}
 
           {/* Update Notification Toast */}
-          {updateInfo?.has_update && (
+          {updateInfo?.has_update && !isUpdateDialogOpen && (
             <div className="w-80 bg-white dark:bg-slate-900 border-l-4 border-emerald-500 shadow-2xl rounded-xl p-4 flex gap-3 animate-in slide-in-from-left-full duration-500 pointer-events-auto ring-1 ring-emerald-500/10">
               <div className="size-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 shrink-0">
                 <span className="material-symbols-outlined">auto_awesome</span>

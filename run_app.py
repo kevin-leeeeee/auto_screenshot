@@ -21,13 +21,20 @@ REPO_NAME = "kevin-leeeeee/auto_screenshot"
 if getattr(sys, 'frozen', False):
     # If running as executable, BASE_DIR is where the .exe is located
     BASE_DIR = Path(sys.executable).parent.absolute()
-    # Path to internal dist files (PyInstaller magic)
-    RESOURCE_DIR = Path(sys._MEIPASS)
-    DIST_DIR = RESOURCE_DIR / "autoflow" / "dist"
+    # Support external UI (Pluggable Architecture)
+    if (BASE_DIR / "ui").exists():
+        DIST_DIR = BASE_DIR / "ui"
+    else:
+        # Path to internal dist files (PyInstaller magic)
+        RESOURCE_DIR = Path(sys._MEIPASS)
+        DIST_DIR = RESOURCE_DIR / "autoflow" / "dist"
 else:
     # If running from source
     BASE_DIR = Path(__file__).parent.absolute()
-    DIST_DIR = BASE_DIR / "autoflow" / "dist"
+    if (BASE_DIR / "ui").exists():
+        DIST_DIR = BASE_DIR / "ui"
+    else:
+        DIST_DIR = BASE_DIR / "autoflow" / "dist"
 
 EXCEL_DIR = BASE_DIR / "excel_轉換"
 # Prioritize 'screenshot_script' for source mode, '截圖腳本' for frozen mode
@@ -311,12 +318,15 @@ class Bridge:
             json.dump(manifest_data, f, indent=2, ensure_ascii=False)
 
     def update_scripts(self):
-        """Download latest script files from GitHub Raw with validation"""
+        """Download latest script files and UI from GitHub"""
         import requests
         import importlib
         import shutil
         import hashlib
+        import zipfile
+        import io
         
+        # 1. Python Scripts to update
         files_to_update = [
             {
                 "url": f"https://raw.githubusercontent.com/{REPO_NAME}/main/excel_轉換/convert_excel.py",
@@ -329,67 +339,81 @@ class Bridge:
         ]
         
         results = []
-        backups = []  # Track backups for potential rollback
+        backups = []
         
         try:
+            # Step A: Update Python Scripts
             for item in files_to_update:
                 file_path = item["local_path"]
                 file_name = file_path.name
-                
-                # Download new file
                 try:
                     resp = requests.get(item["url"], timeout=10)
-                    if resp.status_code != 200:
-                        results.append(f"❌ 下載失敗: {file_name} (HTTP {resp.status_code})")
-                        continue
-                    
-                    new_content = resp.content
-                    
-                    # Basic validation: check if it's a Python file
-                    try:
-                        new_content.decode('utf-8')
-                        if not new_content.startswith(b'#') and not new_content.startswith(b'import'):
-                            results.append(f"⚠️ 檔案格式可疑: {file_name}")
-                            continue
-                    except UnicodeDecodeError:
-                        results.append(f"❌ 檔案編碼錯誤: {file_name}")
-                        continue
-                    
-                    # Backup old file if exists
-                    if file_path.exists():
-                        backup_path = file_path.with_suffix(f".py.bak.{int(time.time())}")
-                        shutil.copy2(file_path, backup_path)
-                        backups.append((file_path, backup_path))
-                        results.append(f"📦 已備份: {file_name} → {backup_path.name}")
-                    
-                    # Write new file
-                    file_path.parent.mkdir(parents=True, exist_ok=True)
-                    with open(file_path, "wb") as f:
-                        f.write(new_content)
-                    
-                    # Calculate hash for verification
-                    file_hash = hashlib.sha256(new_content).hexdigest()[:8]
-                    results.append(f"✅ 更新成功: {file_name} (SHA: {file_hash})")
-                    
-                except requests.exceptions.Timeout:
-                    results.append(f"❌ 連線逾時: {file_name}")
-                except requests.exceptions.ConnectionError:
-                    results.append(f"❌ 網路連線失敗: {file_name}")
+                    if resp.status_code == 200:
+                        if file_path.exists():
+                            backup_path = file_path.with_suffix(f".py.bak.{int(time.time())}")
+                            shutil.copy2(file_path, backup_path)
+                            backups.append((file_path, backup_path))
+                        
+                        file_path.parent.mkdir(parents=True, exist_ok=True)
+                        with open(file_path, "wb") as f:
+                            f.write(resp.content)
+                        results.append(f"✅ 腳本更新成功: {file_name}")
+                    else:
+                        results.append(f"❌ 腳本下載失敗: {file_name}")
                 except Exception as e:
-                    results.append(f"❌ 更新失敗: {file_name} ({str(e)})")
-            
-            # Reload modules if possible
+                    results.append(f"❌ 腳本更新異常: {file_name} ({str(e)})")
+
+            # Step B: Update UI (Pluggable Architecture)
+            # Try to download ui.zip from the latest release
+            try:
+                # Get latest release tag
+                api_url = f"https://api.github.com/repos/{REPO_NAME}/releases/latest"
+                rel_resp = requests.get(api_url, timeout=5)
+                if rel_resp.status_code == 200:
+                    assets = rel_resp.json().get('assets', [])
+                    ui_zip_asset = next((a for a in assets if a['name'] == 'ui.zip'), None)
+                    
+                    if ui_zip_asset:
+                        ui_url = ui_zip_asset['browser_download_url']
+                        results.append("🔍 發現介面更新包 (ui.zip)，正在下載...")
+                        
+                        zip_resp = requests.get(ui_url, timeout=30)
+                        if zip_resp.status_code == 200:
+                            # Use DIST_DIR determined at startup
+                            ui_target = DIST_DIR 
+                            
+                            # Backup current UI
+                            if ui_target.exists():
+                                ui_bak = ui_target.parent / f"ui_bak_{int(time.time())}"
+                                try:
+                                    shutil.move(str(ui_target), str(ui_bak))
+                                    backups.append((ui_target, ui_bak))
+                                except:
+                                    pass # Might be in use
+                            
+                            # Extract ZIP
+                            with zipfile.ZipFile(io.BytesIO(zip_resp.content)) as z:
+                                ui_target.mkdir(parents=True, exist_ok=True)
+                                z.extractall(ui_target)
+                            results.append("✨ 介面 (UI) 已更新成功！(重啟後生效)")
+                        else:
+                            results.append("❌ 介面更新包下載失敗")
+                    else:
+                        results.append("ℹ️ 本次更新不含介面變動")
+            except Exception as e:
+                results.append(f"⚠️ 介面更新偵測失敗: {str(e)}")
+
+            # Step C: Reload modules
             try:
                 import convert_excel
                 importlib.reload(convert_excel)
-                results.append("🔄 已重新載入 convert_excel 模組")
-            except Exception as e:
-                results.append(f"⚠️ 模組重載失敗: {str(e)}")
+                results.append("🔄 核心邏輯已即時重新載入")
+            except:
+                pass
                 
             return {
-                "status": "success" if any("✅" in r for r in results) else "partial",
-                "details": results,
-                "backups": [str(b[1]) for b in backups]
+                "status": "success" if any("✅" in r or "✨" in r for r in results) else "partial",
+                "details": results
             }
             
         except Exception as e:
