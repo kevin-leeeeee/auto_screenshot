@@ -1068,6 +1068,11 @@ class Bridge:
                                 progress_callback=progress_callback
                             )
                             
+                            # CRITICAL: Convert to absolute path immediately after getting out_dir
+                            # This ensures correct path resolution in both source and frozen (exe) modes
+                            if out_dir:
+                                out_dir = os.path.abspath(out_dir)
+                            
                             if out_dir and os.path.exists(out_dir):
                                 self._latest_screenshot_folder = out_dir
                                 # Scan for Word files and the folder itself
