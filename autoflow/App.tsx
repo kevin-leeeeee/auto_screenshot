@@ -345,8 +345,9 @@ const App: React.FC = () => {
       // @ts-ignore
       const res = await window.pywebview.api.update_scripts();
       setIsUpdatingScripts(false);
-      if (res.status === 'success') {
+      if (res.status === 'success' || res.status === 'partial') {
         alert('核心邏輯已成功更新！無需重啟即可生效。');
+        if (res.new_version) setAppVersion(res.new_version);
         setUpdateInfo(null);
       } else {
         alert('更新失敗: ' + res.message);

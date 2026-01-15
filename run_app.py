@@ -18,7 +18,7 @@ VERSION_FILE = Path(__file__).parent / "version.txt"
 if VERSION_FILE.exists():
     CURRENT_VERSION = f"v{VERSION_FILE.read_text().strip()}"
 else:
-    CURRENT_VERSION = "v2.5.0"
+    CURRENT_VERSION = "v2.5.1"
 REPO_NAME = "kevin-leeeeee/auto_screenshot"
 
 # Backend script paths with validation
@@ -206,17 +206,12 @@ class Bridge:
 
     def select_multiple_folders(self):
         """改為單次選取資料夾，符合使用者『有需要再按』的要求"""
-        import tkinter as tk
-        from tkinter import filedialog
         import os
         
-        root = tk.Tk()
-        root.withdraw()
-        root.attributes("-topmost", True)
-        folder_path = filedialog.askdirectory(title="選擇網址資料夾")
-        root.destroy()
+        result = self._window.create_file_dialog(webview.FOLDER_DIALOG)
         
-        if folder_path:
+        if result:
+            folder_path = result[0]
             folder_item = {
                 "path": folder_path,
                 "name": os.path.basename(folder_path) if os.path.basename(folder_path) else folder_path,
@@ -346,7 +341,7 @@ class Bridge:
         backups = []
         
         try:
-            # Step A: Update Python Scripts
+            # Step A: Update Python Scripts & Version File
             for item in files_to_update:
                 file_path = item["local_path"]
                 file_name = file_path.name
@@ -366,6 +361,25 @@ class Bridge:
                         results.append(f"❌ 腳本下載失敗: {file_name}")
                 except Exception as e:
                     results.append(f"❌ 腳本更新異常: {file_name} ({str(e)})")
+
+            # Update version.txt specifically
+            version_url = f"https://raw.githubusercontent.com/{REPO_NAME}/main/version.txt"
+            version_path = BASE_DIR / "version.txt"
+            try:
+                v_resp = requests.get(version_url, timeout=10)
+                if v_resp.status_code == 200:
+                    with open(version_path, "wb") as f:
+                        f.write(v_resp.content)
+                    
+                    # Update global CURRENT_VERSION immediately
+                    global CURRENT_VERSION
+                    new_v = v_resp.content.decode("utf-8").strip()
+                    CURRENT_VERSION = f"v{new_v}"
+                    results.append(f"✅ 版本號已更新為: {CURRENT_VERSION}")
+                else:
+                    results.append("❌ 版本號檔案下載失敗")
+            except Exception as e:
+                results.append(f"❌ 版本更新異常: {str(e)}")
 
             # Step B: Update UI (Pluggable Architecture)
             # Try to download ui.zip from the latest release
@@ -417,6 +431,8 @@ class Bridge:
                 
             return {
                 "status": "success" if any("✅" in r or "✨" in r for r in results) else "partial",
+                "message": "更新完成",
+                "new_version": CURRENT_VERSION,
                 "details": results
             }
             
@@ -490,22 +506,17 @@ class Bridge:
         return {"status": "success", "message": "歷史紀錄與統計數據已清除"}
 
     def export_history(self):
-        import tkinter as tk
-        from tkinter import filedialog
         import csv
         
         data = self._load_data()
         if not data["history"]:
             return {"status": "error", "message": "沒有可導出的紀錄"}
             
-        root = tk.Tk()
-        root.withdraw()
-        file_path = filedialog.asksaveasfilename(
-            defaultextension=".csv",
-            filetypes=[("CSV Files", "*.csv"), ("Text Files", "*.txt"), ("All Files", "*.*")],
-            initialfile=f"autoflow_history.csv"
+        file_path = self._window.create_file_dialog(
+            webview.SAVE_DIALOG, 
+            file_types=("CSV Files (*.csv)", "All files (*.*)"),
+            save_filename="autoflow_history.csv"
         )
-        root.destroy()
         
         if file_path:
             try:
@@ -567,30 +578,24 @@ class Bridge:
 
 
     def select_excel_file(self):
-        import tkinter as tk
-        from tkinter import filedialog
-        root = tk.Tk()
-        root.withdraw()
-        file_path = filedialog.askopenfilename(filetypes=[("Excel Files", "*.xlsx"), ("All Files", "*.*")])
-        root.destroy()
+        result = self._window.create_file_dialog(
+            webview.OPEN_DIALOG, 
+            file_types=("Excel Files (*.xlsx)", "All files (*.*)")
+        )
         
-        if file_path:
+        if result:
+            file_path = result[0]
             self._current_excel_path = file_path
             filename = os.path.basename(file_path)
             return {"status": "success", "path": file_path, "filename": filename}
         return {"status": "canceled"}
 
     def select_file(self, file_types=None):
-        import tkinter as tk
-        from tkinter import filedialog
-        root = tk.Tk()
-        root.withdraw()
+        types = file_types if file_types else ("Text Files (*.txt)", "All files (*.*)")
+        result = self._window.create_file_dialog(webview.OPEN_DIALOG, file_types=types)
         
-        types = file_types if file_types else [("Text Files", "*.txt"), ("All Files", "*.*")]
-        file_path = filedialog.askopenfilename(filetypes=types)
-        root.destroy()
-        
-        if file_path:
+        if result:
+            file_path = result[0]
             filename = os.path.basename(file_path)
             return {
                 "status": "success", 
@@ -601,14 +606,10 @@ class Bridge:
         return {"status": "canceled"}
 
     def select_directory(self):
-        import tkinter as tk
-        from tkinter import filedialog
-        root = tk.Tk()
-        root.withdraw()
-        dir_path = filedialog.askdirectory()
-        root.destroy()
+        result = self._window.create_file_dialog(webview.FOLDER_DIALOG)
         
-        if dir_path:
+        if result:
+            dir_path = result[0]
             dirname = os.path.basename(dir_path) if os.path.basename(dir_path) else dir_path
             return {"status": "success", "path": dir_path, "dirname": dirname}
         return {"status": "canceled"}
@@ -814,17 +815,14 @@ class Bridge:
 
     def select_multiple_files(self):
         """Allows selection of multiple .txt files."""
-        import tkinter as tk
-        from tkinter import filedialog
-        root = tk.Tk()
-        root.withdraw()
-        file_paths = filedialog.askopenfilenames(
-            title="選擇網址清單 (可多選)",
-            filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")]
+        result = self._window.create_file_dialog(
+            webview.OPEN_DIALOG, 
+            allow_multiple=True, 
+            file_types=("Text Files (*.txt)", "All files (*.*)")
         )
-        root.destroy()
         
-        if file_paths:
+        if result:
+            file_paths = result
             # Return list of objects with urlCount
             return {
                 "status": "success", 
@@ -840,14 +838,10 @@ class Bridge:
 
     def select_input_folder(self):
         """Allows selection of a folder containing .txt files."""
-        import tkinter as tk
-        from tkinter import filedialog
-        root = tk.Tk()
-        root.withdraw()
-        folder_path = filedialog.askdirectory(title="選擇包含 TXT 的資料夾")
-        root.destroy()
+        result = self._window.create_file_dialog(webview.FOLDER_DIALOG)
         
-        if folder_path:
+        if result:
+            folder_path = result[0]
             return {
                 "status": "success",
                 "path": folder_path,
