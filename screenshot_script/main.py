@@ -300,7 +300,7 @@ def capture_image(cfg: RunConfig, outpath: Path) -> tuple[object | None, bool]:
         return None, False
 
 
-def run_capture(cfg: RunConfig, external_stop_callback=None, progress_callback=None, use_overlay=True) -> bool:
+def run_capture(cfg: RunConfig, external_stop_callback=None, progress_callback=None, use_overlay=True, suppress_popups=False) -> bool:
     """
     主要執行流程。
     Returns: bool (End execution request? True=Stop completely, False=Normal finish)
@@ -538,11 +538,11 @@ def run_capture(cfg: RunConfig, external_stop_callback=None, progress_callback=N
         
         logger.info("Run finished.")
         logger.info(f"Completed: {processed_this_run}, Skipped: {skipped_this_run}")
-        logger.info(f"Completed: {processed_this_run}, Skipped: {skipped_this_run}")
         if progress_callback:
             progress_callback(processed_this_run, total)
         overlay.set_footer("完成")
-        show_info_ui("完成", f"本次完成 {processed_this_run} 個，跳過 {skipped_this_run} 個。")
+        if not suppress_popups:
+            show_info_ui("完成", f"本次完成 {processed_this_run} 個，跳過 {skipped_this_run} 個。")
 
     except KeyboardInterrupt:
         flush_done(force=True)
@@ -563,7 +563,7 @@ def run_capture(cfg: RunConfig, external_stop_callback=None, progress_callback=N
         overlay.close()
 
 
-def run_from_api(should_stop_callback, config_overrides=None, progress_callback=None):
+def run_from_api(should_stop_callback, config_overrides=None, progress_callback=None, suppress_popups=False):
     """
     Entry point for API/Server to run the capture process.
     should_stop_callback: a callable that returns True if we should abort.
@@ -621,7 +621,7 @@ def run_from_api(should_stop_callback, config_overrides=None, progress_callback=
         if "custom_categories" in config_overrides: cfg.custom_categories = config_overrides["custom_categories"]
         if "category_pause" in config_overrides: cfg.category_pause = config_overrides["category_pause"]
 
-    run_capture(cfg, external_stop_callback=should_stop_callback, progress_callback=progress_callback, use_overlay=True)
+    run_capture(cfg, external_stop_callback=should_stop_callback, progress_callback=progress_callback, use_overlay=True, suppress_popups=suppress_popups)
     return str(cfg.output_dir)
 
 

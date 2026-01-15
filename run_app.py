@@ -18,7 +18,7 @@ VERSION_FILE = Path(__file__).parent / "version.txt"
 if VERSION_FILE.exists():
     CURRENT_VERSION = f"v{VERSION_FILE.read_text().strip()}"
 else:
-    CURRENT_VERSION = "v2.4.0"
+    CURRENT_VERSION = "v2.5.0"
 REPO_NAME = "kevin-leeeeee/auto_screenshot"
 
 # Backend script paths with validation
@@ -1093,7 +1093,8 @@ class Bridge:
                             out_dir = screenshot_main.run_from_api(
                                 lambda: self._screenshot_stop_signal, 
                                 config_overrides=current_config,
-                                progress_callback=progress_callback
+                                progress_callback=progress_callback,
+                                suppress_popups=True
                             )
                             
                             # CRITICAL: Convert to absolute path immediately after getting out_dir
@@ -1111,7 +1112,7 @@ class Bridge:
                                     # Only include files created *after* we started this specific task
                                     # Use a 2-second buffer to handle slight filesystem timestamp variations
                                     if os.path.getmtime(wf) >= start_time - 2:
-                                        results.append({"name": os.path.basename(wf), "path": wf, "type": "file"})
+                                        results.append({"name": os.path.basename(wf), "path": wf, "type": "file", "folder": os.path.dirname(wf)})
                                 
                                 # Results will be displayed in UI
                                 self._latest_screenshot_results.extend(results)
@@ -1119,6 +1120,9 @@ class Bridge:
                             # Record history
                             duration = f"{time.time() - start_time:.1f}s"
                             self._add_history(f"任務 ({idx+1}/{total_files}): {filename}", "Completed", duration)
+                            
+                            # Update processing status to ensure it reflects completion for this file
+                            # Accumulate processed count is handled by progress_callback, but we can double check here if needed
                             
                         except Exception as e:
                             err_msg = str(e)
@@ -1129,15 +1133,18 @@ class Bridge:
                     # Always restore CWD
                     os.chdir(original_cwd)
                     self._task_status["status"] = "idle"
-                    self._task_status["processed"] = 0
-                    self._task_status["total"] = 0
+                    # NOTE: Do NOT reset processed/total here. Frontend needs them to show completion summary.
+                    # They will be reset when `start_screenshot` is called next time.
                     
                     # After all tasks finish, restore window to front
                     try:
                         import webview
                         # In pywebview, self._window should be available if passed to Bridge
                         if hasattr(self, '_window') and self._window:
+                            # Enhanced focus grabbing on Windows
+                            self._window.minimize()
                             self._window.restore()
+                            self._window.set_title(self._window.title) # Simple trigger to refresh window state
                             self._window.show() # Ensure it's visible
                     except:
                         pass

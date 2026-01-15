@@ -1,12 +1,84 @@
 {
     "stats": {
-        "total_conversions": 3,
-        "total_tasks": 9,
+        "total_conversions": 4,
+        "total_tasks": 18,
         "success_rate": "100%",
-        "time_saved": "1m 29s",
-        "total_seconds": 89.19999999999999
+        "time_saved": "3m 31s",
+        "total_seconds": 211.49999999999997
     },
     "history": [
+        {
+            "id": "#AF-76E58",
+            "name": "任務 (2/2): 1150050011.txt",
+            "status": "Completed",
+            "duration": "15.2s",
+            "time": "10:19 PM",
+            "message": ""
+        },
+        {
+            "id": "#AF-2782D",
+            "name": "任務 (1/2): 1150050010.txt",
+            "status": "Completed",
+            "duration": "11.3s",
+            "time": "10:19 PM",
+            "message": ""
+        },
+        {
+            "id": "#AF-52EF6",
+            "name": "任務 (2/2): 1150050011.txt",
+            "status": "Completed",
+            "duration": "15.0s",
+            "time": "10:17 PM",
+            "message": ""
+        },
+        {
+            "id": "#AF-E1F56",
+            "name": "任務 (1/2): 1150050010.txt",
+            "status": "Completed",
+            "duration": "11.3s",
+            "time": "10:16 PM",
+            "message": ""
+        },
+        {
+            "id": "#AF-1AAC2",
+            "name": "任務 (2/2): 1150050011.txt",
+            "status": "Completed",
+            "duration": "17.2s",
+            "time": "10:01 PM",
+            "message": ""
+        },
+        {
+            "id": "#AF-11735",
+            "name": "任務 (1/2): 1150050010.txt",
+            "status": "Completed",
+            "duration": "19.2s",
+            "time": "10:01 PM",
+            "message": ""
+        },
+        {
+            "id": "#AF-5F46F",
+            "name": "任務 (2/2): 1150050011.txt",
+            "status": "Completed",
+            "duration": "19.4s",
+            "time": "09:51 PM",
+            "message": ""
+        },
+        {
+            "id": "#AF-B3A3F",
+            "name": "任務 (1/2): 1150050010.txt",
+            "status": "Completed",
+            "duration": "13.7s",
+            "time": "09:51 PM",
+            "message": ""
+        },
+        {
+            "id": "#AF-BC331",
+            "name": "Excel 轉換 (測試資料.xlsx)",
+            "status": "Completed",
+            "duration": "0.0s",
+            "time": "09:51 PM",
+            "message": ""
+        },
         {
             "id": "#AF-B153E",
             "name": "任務 (1/1): 1150050010.txt",
@@ -159,9 +231,14 @@
             ],
             "inputFiles": [
                 {
-                    "path": "c:\\Users\\HP_600_G1_2ND\\Desktop\\工作自動化\\excel_轉換\\output\\2026-01-14_22-41-54\\1150050010.txt",
+                    "path": "c:\\Users\\HP_600_G1_2ND\\Desktop\\工作自動化\\excel_轉換\\output\\2026-01-15_21-51-05\\1150050010.txt",
                     "name": "1150050010.txt",
                     "urlCount": 3
+                },
+                {
+                    "path": "c:\\Users\\HP_600_G1_2ND\\Desktop\\工作自動化\\excel_轉換\\output\\2026-01-15_21-51-05\\1150050011.txt",
+                    "name": "1150050011.txt",
+                    "urlCount": 4
                 }
             ]
         },

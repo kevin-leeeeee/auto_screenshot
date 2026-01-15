@@ -187,7 +187,43 @@ const Dashboard: React.FC<DashboardProps> = ({
       }
     };
     updateDefaultDir();
+    updateDefaultDir();
   }, [config.inputFiles]);
+
+  // Task Completion Notification
+  const prevStatusRef = useRef<string>('idle');
+  useEffect(() => {
+    if (prevStatusRef.current === 'running' && taskStatus.status === 'idle') {
+      // Task just finished
+      if (taskStatus.total > 0 && taskStatus.processed === taskStatus.total) {
+        // Success
+        setTimeout(() => {
+          alert(`🎉 自動截圖任務已完成！\n\n共處理 ${taskStatus.total} 份文件。`);
+        }, 300);
+      }
+    }
+    prevStatusRef.current = taskStatus.status;
+  }, [taskStatus.status, taskStatus.processed, taskStatus.total]);
+
+  // Calculate Total Estimated Time
+  const totalEstimatedTime = (() => {
+    if (!config.inputFiles || config.inputFiles.length === 0) return null;
+
+    // Calculate total URLs
+    const totalUrls = config.inputFiles.reduce((acc, file) => acc + ((file as any).urlCount || 0), 0);
+    if (totalUrls === 0) return null;
+
+    const avgWait = (config.waitPerPage.min + config.waitPerPage.max) / 2;
+    // 0.5s is roughly the system overhead per page (navigation, checks etc)
+    const perPageTime = avgWait + config.screenshotDelay + 0.5;
+
+    const totalSeconds = totalUrls * perPageTime;
+
+    if (totalSeconds < 60) return `${Math.ceil(totalSeconds)} 秒`;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = Math.ceil(totalSeconds % 60);
+    return `${minutes} 分 ${seconds} 秒`;
+  })();
 
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -731,7 +767,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                           const remaining = taskStatus.total - taskStatus.processed;
                           if (remaining <= 0) return '即將完成';
                           const avgWait = (config.waitPerPage.min + config.waitPerPage.max) / 2;
-                          const totalSeconds = remaining * (avgWait + config.screenshotDelay + 4.5);
+                          const totalSeconds = remaining * (avgWait + config.screenshotDelay + 0.5);
                           const minutes = Math.floor(totalSeconds / 60);
                           return minutes > 0 ? `${minutes} 分鐘` : '少於 1 分鐘';
                         })()}
@@ -745,6 +781,22 @@ const Dashboard: React.FC<DashboardProps> = ({
                     >
                       <div className="absolute inset-0 bg-white/20 animate-pulse" />
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Estimated Time Display */}
+              {totalEstimatedTime && taskStatus.status !== 'running' && (
+                <div className="mt-2 p-3 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100/50 dark:border-indigo-900/30 flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-500">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-indigo-500 text-lg">schedule</span>
+                    <div>
+                      <p className="text-[10px] font-black text-indigo-500 uppercase tracking-wide">預計總處理時間</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">基於當前設定與網址數量</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-sm font-black text-slate-700 dark:text-indigo-300 font-mono">{totalEstimatedTime}</span>
                   </div>
                 </div>
               )}
@@ -854,21 +906,21 @@ const Dashboard: React.FC<DashboardProps> = ({
             <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">最新輸出</span>
-                {appState.latest_screenshot_results?.length > 0 && (
-                  <button
-                    onClick={() => { if (window.pywebview?.api) window.pywebview.api.open_folder(appState.latest_screenshot_folder || config.outputDir); }}
-                    className="p-1 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded flex items-center justify-center text-blue-600 transition-colors"
-                    title="開啟輸出資料夾"
-                  >
-                    <span className="material-symbols-outlined text-[16px]">folder_open</span>
-                  </button>
-                )}
               </div>
               <div className="space-y-2 overflow-y-auto custom-scrollbar max-h-[160px]">
                 {appState.latest_screenshot_results?.length ? appState.latest_screenshot_results.map((res: any, idx: number) => (
-                  <div key={idx} className="flex items-center justify-between p-2 bg-white rounded-lg shadow-sm">
-                    <span className="truncate text-[11px] font-medium text-slate-700 cursor-pointer hover:underline" onClick={() => { if (window.pywebview?.api) window.pywebview.api.open_file(res.path); }}>{res.name}</span>
-                    <span className="text-[9px] text-slate-400 ml-2 shrink-0">文件</span>
+                  <div key={idx} className="flex items-center justify-between p-2 bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-100 dark:border-slate-700/50">
+                    <span className="truncate text-[11px] font-medium text-slate-700 dark:text-slate-300 cursor-pointer hover:underline flex-1" onClick={() => { if (window.pywebview?.api) window.pywebview.api.open_file(res.path); }}>{res.name}</span>
+                    <div className="flex items-center gap-2 ml-2 shrink-0">
+                      <button
+                        onClick={() => { if (window.pywebview?.api) window.pywebview.api.open_folder(res.folder || config.outputDir); }}
+                        className="p-1 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded transition-colors group"
+                        title="開啟資料夾"
+                      >
+                        <span className="material-symbols-outlined text-[16px] group-hover:scale-110 transition-transform">folder_open</span>
+                      </button>
+                      <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter opacity-60">文件</span>
+                    </div>
                   </div>
                 )) : <div className="text-center py-4 text-[10px] text-slate-400 italic">{screenshotStatus.status === 'running' ? '正在生成...' : '暫無執行輸出'}</div>}
               </div>
