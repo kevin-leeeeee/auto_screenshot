@@ -14,7 +14,11 @@ import PIL.ImageStat
 import pyautogui
 
 # Version Information
-CURRENT_VERSION = "v2.3.0"
+VERSION_FILE = Path(__file__).parent / "version.txt"
+if VERSION_FILE.exists():
+    CURRENT_VERSION = f"v{VERSION_FILE.read_text().strip()}"
+else:
+    CURRENT_VERSION = "v2.4.0"
 REPO_NAME = "kevin-leeeeee/auto_screenshot"
 
 # Backend script paths with validation
