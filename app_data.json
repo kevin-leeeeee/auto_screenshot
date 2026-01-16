@@ -1,12 +1,44 @@
 {
     "stats": {
-        "total_conversions": 4,
-        "total_tasks": 39,
-        "success_rate": "97%",
+        "total_conversions": 5,
+        "total_tasks": 43,
+        "success_rate": "93%",
         "time_saved": "9m 39s",
         "total_seconds": 579.9
     },
     "history": [
+        {
+            "id": "#AF-40AEE",
+            "name": "自動截圖任務",
+            "status": "Completed",
+            "duration": "1m 41s",
+            "time": "02:01 PM",
+            "message": "完成 1 個檔案"
+        },
+        {
+            "id": "#AF-AE568",
+            "name": "Excel 轉換 (測試資料.xlsx)",
+            "status": "Completed",
+            "duration": "0.0s",
+            "time": "01:51 PM",
+            "message": ""
+        },
+        {
+            "id": "#AF-D8218",
+            "name": "自動截圖任務",
+            "status": "Error",
+            "duration": "--",
+            "time": "01:51 PM",
+            "message": "找不到檔案: C:\\Users\\HP_600_G1_2ND\\Desktop\\工作自動化\\excel\\output\\2026-01-15_21-51-05\\1150050011.txt"
+        },
+        {
+            "id": "#AF-81D01",
+            "name": "自動截圖任務",
+            "status": "Error",
+            "duration": "--",
+            "time": "01:51 PM",
+            "message": "找不到檔案: C:\\Users\\HP_600_G1_2ND\\Desktop\\工作自動化\\excel\\output\\2026-01-15_21-51-05\\1150050011.txt"
+        },
         {
             "id": "#AF-3BAA7",
             "name": "自動截圖任務",
@@ -323,10 +355,10 @@
     "settings": {
         "config": {
             "waitPerPage": {
-                "min": 3,
-                "max": 3
+                "min": 5,
+                "max": 10
             },
-            "screenshotDelay": 0,
+            "screenshotDelay": 5,
             "cropEnabled": true,
             "cropTop": 0,
             "cropBottom": 0,
@@ -345,7 +377,7 @@
             ],
             "autoWordExport": true,
             "skipDone": false,
-            "textCheckEnabled": false,
+            "textCheckEnabled": true,
             "scrollCapture": false,
             "scrollStitch": true,
             "scrollTimes": 4,
@@ -399,12 +431,7 @@
             ],
             "inputFiles": [
                 {
-                    "path": "C:\\Users\\HP_600_G1_2ND\\Desktop\\工作自動化\\excel\\output\\2026-01-15_21-51-05\\1150050011.txt",
-                    "name": "1150050011.txt",
-                    "urlCount": 4
-                },
-                {
-                    "path": "C:\\Users\\HP_600_G1_2ND\\Desktop\\工作自動化\\excel\\output\\2026-01-15_21-51-05\\1150050010.txt",
+                    "path": "c:\\Users\\HP_600_G1_2ND\\Desktop\\工作自動化\\excel\\output\\2026-01-16_13-51-40\\1150050010.txt",
                     "name": "1150050010.txt",
                     "urlCount": 3
                 }

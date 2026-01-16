@@ -85,85 +85,140 @@ import ctypes
 from ctypes import wintypes as w
 
 def get_clipboard_text_ctypes() -> str:
-    user32 = ctypes.windll.user32
-    kernel32 = ctypes.windll.kernel32
-    CF_UNICODETEXT = 13
-    
-    if not user32.OpenClipboard(None):
-        return ""
     try:
-        if not user32.IsClipboardFormatAvailable(CF_UNICODETEXT):
+        user32 = ctypes.windll.user32
+        kernel32 = ctypes.windll.kernel32
+        
+        # Define types to prevent 64-bit pointer truncation (CRITICAL FIX)
+        user32.OpenClipboard.argtypes = [ctypes.c_void_p]
+        user32.OpenClipboard.restype = ctypes.c_bool
+        
+        user32.GetClipboardData.argtypes = [ctypes.c_uint]
+        user32.GetClipboardData.restype = ctypes.c_void_p  # HANDLE is void*
+        
+        user32.IsClipboardFormatAvailable.argtypes = [ctypes.c_uint]
+        user32.IsClipboardFormatAvailable.restype = ctypes.c_bool
+        
+        user32.CloseClipboard.argtypes = []
+        user32.CloseClipboard.restype = ctypes.c_bool
+        
+        kernel32.GlobalLock.argtypes = [ctypes.c_void_p]
+        kernel32.GlobalLock.restype = ctypes.c_void_p
+        
+        kernel32.GlobalUnlock.argtypes = [ctypes.c_void_p]
+        kernel32.GlobalUnlock.restype = ctypes.c_bool
+
+        CF_UNICODETEXT = 13
+        
+        if not user32.OpenClipboard(None):
             return ""
-        h_data = user32.GetClipboardData(CF_UNICODETEXT)
-        if not h_data:
-            return ""
-        p_data = kernel32.GlobalLock(h_data)
-        if not p_data:
-            return ""
+        
         try:
-            return ctypes.c_wchar_p(p_data).value
+            if not user32.IsClipboardFormatAvailable(CF_UNICODETEXT):
+                return ""
+                
+            h_data = user32.GetClipboardData(CF_UNICODETEXT)
+            if not h_data:
+                return ""
+                
+            p_data = kernel32.GlobalLock(h_data)
+            if not p_data:
+                return ""
+                
+            try:
+                # p_data is a pointer to the buffer, c_wchar_p handles unicode string reading
+                return ctypes.c_wchar_p(p_data).value
+            finally:
+                kernel32.GlobalUnlock(h_data)
+        except Exception as e:
+            logger.error(f"Clipboard inner error: {e}")
+            return ""
         finally:
-            kernel32.GlobalUnlock(h_data)
-    except Exception:
+            user32.CloseClipboard()
+    except Exception as e:
+        logger.error(f"Clipboard setup error: {e}")
         return ""
-    finally:
-        user32.CloseClipboard()
 
 def extract_text_content(region: Optional[tuple[int, int, int, int]] = None) -> str:
     """
     Extract text content using clipboard (Ctrl+A).
     """
-    # 1. Focus browser to ensure hotkeys work
-    focus_browser_window()
-    
-    # 2. Use Ctrl+A -> Ctrl+C to get text
-    wait_seconds = 0.15
-    prev_text = get_clipboard_text_ctypes()
-
     text = ""
-    marker = f"__CLIPBOARD_MARKER_{time.time_ns()}__"
-    
-    # Set marker (simplified, just clear first)
-    # Since we can't easily SET clipboard with just ctypes without more code, 
-    # and relying on clearing is usually enough difference.
-    # Actually setting clipboard with ctypes is also verbose.
-    # Let's rely on checking if content CHANGED or is new.
-    # Or keep it simple: clear clipboard via simple open/empty/close
-    
-    def clear_clipboard():
-        user32 = ctypes.windll.user32
-        if user32.OpenClipboard(None):
-            user32.EmptyClipboard()
-            user32.CloseClipboard()
+    try:
+        # 1. Focus browser inside try block
+        try:
+            focus_browser_window()
+        except Exception as e:
+            logger.warning(f"    [warn] focus_browser_window failed: {e}")
 
-    for attempt in range(3):
-        focus_page_for_copy()
-        clear_clipboard()
+        # 2. Use Ctrl+A -> Ctrl+C to get text
+        wait_seconds = 0.15
         
-        pyautogui.hotkey("ctrl", "a")
-        time.sleep(0.05)
-        pyautogui.hotkey("ctrl", "c")
-        time.sleep(wait_seconds)
-        
-        click_window_corner("bottom_left")
-        time.sleep(0.05)
-        pyautogui.press("esc")
-        time.sleep(0.05)
-        
-        for _ in range(10):
-            text = get_clipboard_text_ctypes()
-            if text:
-                break
-            time.sleep(0.1)
+        # Define clean clipboard function
+        def clear_clipboard():
+            pass # Skipping ctypes based clearing for now to reduce crash risk unless needed
+            # Or use a safer method? Let's use the one we had but guarded.
+            try:
+                user32 = ctypes.windll.user32
+                if user32.OpenClipboard(None):
+                    user32.EmptyClipboard()
+                    user32.CloseClipboard()
+            except Exception as e:
+                logger.warning(f"    [warn] Failed to clear clipboard: {e}")
+
+        for attempt in range(3):
+            # Reuse focus logic safely
+            try:
+                focus_page_for_copy()
+            except Exception as e:
+                logger.warning(f"    [warn] focus_page_for_copy failed: {e}")
+
+            clear_clipboard()
             
-        if text.strip() and not looks_like_url(text):
-            break
-        time.sleep(0.2)
-        
-    snippet = text[:200].replace("\n", " ").replace("\r", " ")
-    logger.debug(f"  文字長度: {len(text)} | 節錄: {snippet!r}")
+            # Using pyautogui with error handling
+            try:
+                pyautogui.hotkey("ctrl", "a")
+                time.sleep(0.05)
+                pyautogui.hotkey("ctrl", "c")
+            except Exception as e:
+                logger.error(f"    [error] PyAutoGUI error: {e}")
+                continue
 
-    # No need to restore previous text, it's usually not critical for this tool
+            time.sleep(wait_seconds)
+            
+            # Dismiss selection
+            try:
+                click_window_corner("bottom_left")
+                time.sleep(0.05)
+                pyautogui.press("esc")
+                time.sleep(0.05)
+            except:
+                pass
+            
+            # Check clipboard
+            for _ in range(10):
+                try:
+                    text = get_clipboard_text_ctypes()
+                    if text:
+                        break
+                except Exception:
+                    pass
+                time.sleep(0.1)
+                
+            if text.strip() and not looks_like_url(text):
+                break
+            time.sleep(0.2)
+            
+        if not text:
+             pass 
+
+        snippet = text[:200].replace("\n", " ").replace("\r", " ")
+        logger.debug(f"  文字長度: {len(text)} | 節錄: {snippet!r}")
+
+    except Exception as e:
+        logger.error(f"Error in extract_text_content: {e}")
+        return ""
+
     return text
 
 def normalize_text(text: str) -> str:

@@ -161,7 +161,14 @@ def handle_page_checks(cfg: RunConfig, overlay: OverlayUI) -> tuple[str | None, 
         return None, False, False
 
     # 進行文字檢查 (Ctrl+A)
-    extracted_text = extract_text_content()
+    try:
+        logger.debug("  Starting text extraction (Ctrl+A)...")
+        extracted_text = extract_text_content()
+        logger.debug(f"  Text extraction complete. Length: {len(extracted_text) if extracted_text else 0}")
+    except Exception as e:
+        logger.error(f"  Critical error during text extraction: {e}")
+        return "無法判斷", False, False
+
     if not extracted_text:
         return "無法判斷", False, False
 
@@ -473,7 +480,14 @@ def run_capture(cfg: RunConfig, external_stop_callback=None, progress_callback=N
                 time.sleep(UI_HIDE_BUFFER_SECONDS)
 
                 # --- Page Checks (OCR) ---
-                cls, should_stop, should_skip_url = handle_page_checks(cfg, overlay)
+                try:
+                    logger.debug("Entering handle_page_checks...")
+                    cls, should_stop, should_skip_url = handle_page_checks(cfg, overlay)
+                    logger.debug(f"Page check result: {cls}, Stop: {should_stop}, Skip: {should_skip_url}")
+                except Exception as e:
+                    logger.error(f"Unexpected error in handle_page_checks: {e}")
+                    cls, should_stop, should_skip_url = "無法判斷", False, False
+
                 if should_stop:
                     flush_done(force=True)
                     overlay.set_footer("已停止")
