@@ -59,4 +59,27 @@ def launch():
         input("Press Enter to exit...")
 
 if __name__ == "__main__":
-    launch()
+    import argparse
+    parser = argparse.ArgumentParser(description="AutoFlow Control Center")
+    parser.add_argument("--update", action="store_true", help="僅更新腳本與核心邏輯 (僅限開發者或命令行使用)")
+    args, _ = parser.parse_known_args()
+
+    if args.update:
+        from core.main import setup_paths, Bridge
+        setup_paths()
+        # Bridge logic usually needs a window, but update_scripts is safe without it
+        bridge = Bridge(None)
+        print("🔄 正在從 GitHub 檢查並執行更新...")
+        result = bridge.update_scripts()
+        
+        # Display details
+        if "details" in result:
+            for line in result["details"]:
+                print(line)
+        
+        print(f"\n✨ 更新狀態: {result['status']}")
+        print(f"📝 訊息: {result['message']}")
+        if result.get("new_version"):
+            print(f"📌 目前版本已更新為: {result['new_version']}")
+    else:
+        launch()

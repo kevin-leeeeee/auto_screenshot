@@ -398,7 +398,7 @@ class Bridge:
             # Try to download ui.zip from the latest release
             try:
                 # Get latest release tag
-                api_url = f"https://api.github.com/repos/{repo}/releases/latest"
+                api_url = f"https://api.github.com/repos/{REPO_NAME.strip()}/releases/latest"
                 rel_resp = requests.get(api_url, timeout=5)
                 if rel_resp.status_code == 200:
                     assets = rel_resp.json().get('assets', [])
