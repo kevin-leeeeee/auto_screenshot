@@ -193,12 +193,14 @@ def handle_page_checks(cfg: RunConfig, overlay: OverlayUI) -> tuple[str | None, 
     }
 
     # 取得優先順序 (優先讀取前端傳來的順序)
-    priority_order = getattr(cfg, "keywords", ["登入", "拼圖與人機驗證", "查無資料", "BSMI"])
+    priority_order = getattr(cfg, "keywords", None)
     if not priority_order:
         priority_order = ["登入", "拼圖與人機驗證", "查無資料", "BSMI"]
     
-    # 這裡也要確保舊版的「驗證碼」和「不存在」在判斷時能被正確映射到新名稱 (如果有的話)
-    priority_order = [("拼圖與人機驗證" if k == "驗證碼" else ("查無資料" if k == "不存在" else k)) for k in priority_order]
+    # 確保 priority_order 是列表（防止 None 或其它類型導致循環報錯）
+    if not isinstance(priority_order, list):
+        priority_order = ["登入", "拼圖與人機驗證", "查無資料", "BSMI"]
+
 
     detected_cls = None
     

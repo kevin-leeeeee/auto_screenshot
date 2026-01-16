@@ -1,8 +1,8 @@
-# AutoFlow Control Center (v3.2.1)
+# AutoFlow Control Center (v3.3.0)
 
 這是一個具備「插拔式架構」的自動化工作平台，專為追求極致維護效率而設計。
 
-## 🏆 v3.2.1 核心特色：插拔式架構 (Pluggable Architecture)
+## 🏆 v3.3.0 核心特色：插拔式架構 (Pluggable Architecture)
 從本版本起，主程式 (.exe) 已成為一個穩定的執行平台，所有的業務邏輯與介面皆已解耦：
 - **零重載更新**: 修正 UI、Excel 腳本或截圖邏輯時，只需替換檔案，**無需重新下載整個發布包**。
 - **極致輕量**: 核心邏輯更新僅需數百 KB，取代以往數百 MB 的重複下載。
