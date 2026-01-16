@@ -42,6 +42,7 @@ interface PyWebViewAPI {
         details?: string[];
         backups?: string[];
         message?: string;
+        new_version?: string;
     }>;
     download_full_update(save_path?: string): Promise<{
         status: string;

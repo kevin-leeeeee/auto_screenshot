@@ -18,7 +18,7 @@ import zipfile
 import io
 
 # Global version but initialized in main()
-CURRENT_VERSION = "v2.5.1"
+CURRENT_VERSION = "v3.1.0"
 REPO_NAME = "kevin-leeeeee/auto_screenshot"
 
 # Paths - initialized later

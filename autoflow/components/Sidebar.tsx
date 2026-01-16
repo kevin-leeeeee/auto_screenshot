@@ -15,7 +15,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   currentView,
   onViewChange,
   systemStatus = 'idle',
-  version = 'v2.2.0',
+  version = 'v3.1.0',
   onCheckUpdate,
   hasUpdate = false
 }) => {

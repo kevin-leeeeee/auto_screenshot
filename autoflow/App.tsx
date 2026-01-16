@@ -17,7 +17,7 @@ const App: React.FC = () => {
   const [isLogOpen, setIsLogOpen] = useState(false);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [updateInfo, setUpdateInfo] = useState<any>(null);
-  const [appVersion, setAppVersion] = useState('v2.2.0');
+  const [appVersion, setAppVersion] = useState('v3.1.0');
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
   const [isUpdatingScripts, setIsUpdatingScripts] = useState(false);
 
@@ -330,7 +330,7 @@ const App: React.FC = () => {
     // @ts-ignore
     if (window.pywebview?.api) {
       // @ts-ignore
-      const update = await window.pywebview.api.get_update_info();
+      const update = await window.pywebview.api.check_update();
       if (update) {
         setUpdateInfo(update);
         setIsUpdateDialogOpen(true);
