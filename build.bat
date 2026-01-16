@@ -72,12 +72,12 @@ echo [3/5] Creating UI Zip...
 powershell -Command "Compress-Archive -Path 'autoflow\dist\*' -DestinationPath 'dist\ui.zip' -Force"
 
 echo [4/5] Creating Full Release Zip...
-powershell -Command "Compress-Archive -Path 'dist\AutoFlow' -DestinationPath 'dist\AutoFlow_v2.5.1_Full.zip' -Force"
+powershell -Command "Compress-Archive -Path 'dist\AutoFlow' -DestinationPath 'dist\AutoFlow_v3.1.0_Full.zip' -Force"
 
 echo.
 echo ===================================================
 echo   Build Complete! 
-echo   File: dist\AutoFlow_v2.5.1_Full.zip
+echo   File: dist\AutoFlow_v3.1.0_Full.zip
 echo ===================================================
 echo.
 pause
