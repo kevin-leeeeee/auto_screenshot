@@ -17,7 +17,7 @@ const App: React.FC = () => {
   const [isLogOpen, setIsLogOpen] = useState(false);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [updateInfo, setUpdateInfo] = useState<any>(null);
-  const [appVersion, setAppVersion] = useState('v3.3.0');
+  const [appVersion, setAppVersion] = useState('v3.3.1');
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
   const [isUpdatingScripts, setIsUpdatingScripts] = useState(false);
 

@@ -1,12 +1,20 @@
 {
     "stats": {
         "total_conversions": 5,
-        "total_tasks": 43,
+        "total_tasks": 44,
         "success_rate": "93%",
-        "time_saved": "9m 39s",
-        "total_seconds": 579.9
+        "time_saved": "10m 9s",
+        "total_seconds": 609.9
     },
     "history": [
+        {
+            "id": "#AF-1E0CF",
+            "name": "自動截圖任務",
+            "status": "Completed",
+            "duration": "30.0s",
+            "time": "02:12 PM",
+            "message": "完成 1 個檔案"
+        },
         {
             "id": "#AF-40AEE",
             "name": "自動截圖任務",

@@ -18,7 +18,7 @@ import zipfile
 import io
 
 # Global version but initialized in main()
-CURRENT_VERSION = "v3.3.0"
+CURRENT_VERSION = "v3.3.1"
 REPO_NAME = "kevin-leeeeee/auto_screenshot"
 
 # Paths - initialized later
@@ -354,6 +354,18 @@ class Bridge:
             {
                 "url": f"https://raw.githubusercontent.com/{REPO_NAME}/main/截圖腳本/main.py",
                 "local_path": SCREENSHOT_DIR / "main.py"
+            },
+            {
+                "url": f"https://raw.githubusercontent.com/{REPO_NAME}/main/screenshot/utils_image.py",
+                "local_path": SCREENSHOT_DIR / "utils_image.py"
+            },
+            {
+                "url": f"https://raw.githubusercontent.com/{REPO_NAME}/main/screenshot/utils_system.py",
+                "local_path": SCREENSHOT_DIR / "utils_system.py"
+            },
+            {
+                "url": f"https://raw.githubusercontent.com/{REPO_NAME}/main/screenshot/config.py",
+                "local_path": SCREENSHOT_DIR / "config.py"
             },
             # Update CORE LOGIC as well (Self Update)
             {

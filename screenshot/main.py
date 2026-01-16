@@ -3,6 +3,8 @@ import random
 import time
 import webbrowser
 import pyautogui
+# Disable FailSafe to prevent crashes when mouse hits corners during automation
+pyautogui.FAILSAFE = False
 from datetime import datetime
 from pathlib import Path
 
