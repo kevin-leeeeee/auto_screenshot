@@ -13,7 +13,7 @@
 
 ### 推薦開發流程
 1. **前端**: 進入 `autoflow` 目錄，執行 `npm run dev` 啟動開發伺服器。
-2. **後端**: 執行 `python run_app.py` 啟動主程式（預設會連結至本地開發伺服器或編譯後的 dist）。
+2. **後端**: 執行 `python run.py` 啟動主程式（預設會連結至本地開發伺服器或編譯後的 dist）。
 
 ---
 
@@ -21,37 +21,24 @@
 
 ### 快捷指令
 
-#### 方法 1: 完整發布流程 (推薦)
-此流程會自動更新版本、建置前端、打包後端並上傳至 GitHub。
-
+#### 發布流程
+1. 更新版本號: 修改 `version.txt`
+2. 更新日誌: 修改 `CHANGELOG.md`
+3. 提交 Git 變更
 ```powershell
-# 1. 更新版本號 (依據引導選擇主/次/例行更新)
-.\bump_version.bat
-
-# 2. 更新 CHANGELOG.md (手動編輯記錄變更)
-
-# 3. 提交 Git 變更
 git add .
 git commit -m "Bump version to vX.X.X"
-
-# 4. 自動建置並發布到 GitHub Releases
-.\release.bat
 ```
-
-#### 方法 2: 僅建置 (不發布)
-僅生成 `.exe` 或資料夾版本供測試。
-
-```powershell
-.\build.bat
-```
+4. 建置並發布
+執行 `build.bat` 生成執行檔後，手動上傳至 GitHub Releases。
 
 ---
 
 ## 📁 專案關鍵檔案說明
 
-- `run_app.py`: 核心入口，負責 PyWebView 與 Python API 橋接。
-- `autoflow.spec`: PyInstaller 打包設定檔。
-- `excel_轉換/` & `截圖腳本/`: 插拔式邏輯目錄，會被複製到 Release 同級目錄下。
+- `run.py`: 核心入口，負責 PyWebView 與 Python API 橋接。
+- `AutoFlow.spec`: PyInstaller 打包設定檔。
+- `excel/` & `screenshot/`: 插拔式邏輯目錄，會被複製到 Release 同級目錄下。
 - `autoflow/`: React 前端源碼目錄。
 
 ---

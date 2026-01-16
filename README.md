@@ -32,18 +32,14 @@
 
 ```
 AutoFlow_Control_Center/
-├── run_app.py                      # 應用程式主入口 (PyWebView 封裝)
+├── run.py                          # 應用程式主入口 (PyWebView 封裝)
 ├── version.txt                     # 版本號管理
 ├── CHANGELOG.md                    # 更新日誌
-├── UPDATE_GUIDE.md                 # 使用者更新指南
 ├── DEVELOPER.md                    # 開發者指南 (建置與打包說明)
-├── bump_version.bat                # 版本號更新工具
-├── build.bat                      # 建置腳本 (PyInstaller)
-├── release.bat                     # 自動發布腳本 (gh release)
-├── build.spec                     # PyInstaller 配置
-├── docs/                          # 文檔資料夾
-├── excel_轉換/                     # 外部 Excel 處理邏輯 (插拔式)
-├── 截圖腳本/                       # 外部網頁自動化邏輯 (插拔式)
+├── build.bat                       # 建置腳本 (PyInstaller)
+├── AutoFlow.spec                   # PyInstaller 配置
+├── excel/                          # 外部 Excel 處理邏輯 (插拔式)
+├── screenshot/                     # 外部網頁自動化邏輯 (插拔式)
 └── autoflow/                       # 前端 React 源碼
 ```
 
@@ -64,12 +60,13 @@ AutoFlow_Control_Center/
 3. 解壓縮並覆蓋舊版本
 4. 執行新版本的 `.exe`
 
-> 📖 **詳細更新指南**: 請參閱 [UPDATE_GUIDE.md](UPDATE_GUIDE.md)
+
 
 ### 開發者發布新版本
-1. 執行 `bump_version.bat` 更新版本號
-2. 更新 `CHANGELOG.md`
-3. 執行 `release.bat` 自動建置並發布
+### 開發者發布新版本
+1. 更新 `version.txt` 與 `CHANGELOG.md`
+2. 執行 `build.bat` 進行建置
+3. 詳情請參閱 [DEVELOPER.md](DEVELOPER.md)
 
 ---
 
