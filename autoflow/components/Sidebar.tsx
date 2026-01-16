@@ -9,15 +9,21 @@ interface SidebarProps {
   version?: string;
   onCheckUpdate?: () => void;
   hasUpdate?: boolean;
+  updateInfo?: any;
+  onUpdateScripts?: () => void;
+  isUpdatingScripts?: boolean;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
   currentView,
   onViewChange,
   systemStatus = 'idle',
-  version = 'v3.1.0',
+  version = 'v3.2.0',
   onCheckUpdate,
-  hasUpdate = false
+  hasUpdate = false,
+  updateInfo,
+  onUpdateScripts,
+  isUpdatingScripts = false
 }) => {
   const navItems = [
     { id: 'dashboard' as ViewType, label: '儀表板', icon: 'dashboard' },
@@ -56,11 +62,39 @@ const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <div className="flex flex-col gap-4">
+        {/* Update Notification (Moved to Sidebar Bottom) */}
+        {hasUpdate && updateInfo && (
+          <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-4 animate-in slide-in-from-bottom-2 duration-300">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-tighter animate-pulse">✨ 發現新版本</p>
+              <div className="size-1.5 bg-emerald-500 rounded-full"></div>
+            </div>
+            <p className="text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-3">
+              版本 {updateInfo.latest_version} 已發布！
+            </p>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={onUpdateScripts}
+                disabled={isUpdatingScripts}
+                className="w-full text-[10px] bg-emerald-600 text-white py-2 rounded-lg font-bold hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[14px]">
+                  {isUpdatingScripts ? 'sync' : 'auto_fix'}
+                </span>
+                {isUpdatingScripts ? '更新中' : '快速更新腳本'}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Check Update Button */}
         {onCheckUpdate && (
           <button
             onClick={onCheckUpdate}
-            className="relative flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 border border-slate-200 dark:border-white/5"
+            className={`relative flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all border ${hasUpdate
+              ? 'bg-blue-600/5 border-blue-600/20 text-blue-600 dark:text-blue-400'
+              : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 border-slate-200 dark:border-white/5'
+              }`}
           >
             <span className="material-symbols-outlined text-[20px]">system_update</span>
             <span className="text-xs font-bold">檢查更新</span>

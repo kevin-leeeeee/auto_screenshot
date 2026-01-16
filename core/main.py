@@ -18,7 +18,7 @@ import zipfile
 import io
 
 # Global version but initialized in main()
-CURRENT_VERSION = "v3.1.0"
+CURRENT_VERSION = "v3.2.0"
 REPO_NAME = "kevin-leeeeee/auto_screenshot"
 
 # Paths - initialized later
@@ -154,8 +154,20 @@ class Bridge:
                         download_url = asset.get("browser_download_url", "")
                         break
                 
+                latest_tag = latest_version.lower().lstrip('v')
+                current_tag = CURRENT_VERSION.lower().lstrip('v')
+                
+                # Semantic version comparison
+                try:
+                    latest_parts = [int(p) for p in latest_tag.split('.')]
+                    current_parts = [int(p) for p in current_tag.split('.')]
+                    has_update = latest_parts > current_parts
+                except:
+                    # Fallback to string comparison if not semver
+                    has_update = latest_tag != current_tag and "dev" not in current_tag
+
                 result = {
-                    "has_update": latest_version and latest_version != CURRENT_VERSION,
+                    "has_update": has_update,
                     "latest_version": latest_version,
                     "current_version": CURRENT_VERSION,
                     "release_url": data.get("html_url", ""),

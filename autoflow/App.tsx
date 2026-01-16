@@ -17,7 +17,7 @@ const App: React.FC = () => {
   const [isLogOpen, setIsLogOpen] = useState(false);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [updateInfo, setUpdateInfo] = useState<any>(null);
-  const [appVersion, setAppVersion] = useState('v3.1.0');
+  const [appVersion, setAppVersion] = useState('v3.2.0');
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
   const [isUpdatingScripts, setIsUpdatingScripts] = useState(false);
 
@@ -365,6 +365,9 @@ const App: React.FC = () => {
         systemStatus={taskStatus.status}
         onCheckUpdate={handleCheckUpdate}
         hasUpdate={updateInfo?.has_update || false}
+        updateInfo={updateInfo}
+        onUpdateScripts={handleUpdateScripts}
+        isUpdatingScripts={isUpdatingScripts}
       />
 
       <main className="flex-1 flex flex-col overflow-hidden relative">
@@ -449,53 +452,7 @@ const App: React.FC = () => {
             </div>
           ))}
 
-          {/* Update Notification Toast */}
-          {updateInfo?.has_update && !isUpdateDialogOpen && (
-            <div className="w-80 bg-white dark:bg-slate-900 border-l-4 border-emerald-500 shadow-2xl rounded-xl p-4 flex gap-3 animate-in slide-in-from-left-full duration-500 pointer-events-auto ring-1 ring-emerald-500/10">
-              <div className="size-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 shrink-0">
-                <span className="material-symbols-outlined">auto_awesome</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-start">
-                  <p className="text-[11px] font-black text-emerald-600 uppercase tracking-tighter animate-pulse">✨ 發現新版本</p>
-                  <button
-                    onClick={() => setUpdateInfo(null)}
-                    className="text-slate-300 hover:text-slate-500 transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-[14px]">close</span>
-                  </button>
-                </div>
-                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1">
-                  版本 {updateInfo.latest_version} 已發布！
-                </p>
-                <div className="mt-3 flex gap-2">
-                  <button
-                    onClick={() => {
-                      // @ts-ignore
-                      if (window.pywebview?.api) {
-                        // @ts-ignore
-                        window.pywebview.api.open_browser(updateInfo.release_url);
-                      }
-                    }}
-                    className="text-[10px] bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-emerald-700 transition-colors flex items-center gap-1"
-                  >
-                    <span className="material-symbols-outlined text-xs">download</span>
-                    下載主程式
-                  </button>
-                  <button
-                    onClick={handleUpdateScripts}
-                    disabled={isUpdatingScripts}
-                    className="text-[10px] bg-slate-900 dark:bg-slate-700 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-slate-800 transition-colors flex items-center gap-1 disabled:opacity-50"
-                  >
-                    <span className="material-symbols-outlined text-xs animate-spin-slow">
-                      {isUpdatingScripts ? 'sync' : 'auto_fix'}
-                    </span>
-                    {isUpdatingScripts ? '更新中...' : '僅更新核心邏輯'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+
         </div>
       </main>
 
