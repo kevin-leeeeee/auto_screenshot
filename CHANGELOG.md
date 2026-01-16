@@ -1,16 +1,18 @@
 # AutoFlow Control Center 更新日誌
 
-## [v2.5.1] - 2026-01-16
-### ✨ 穩定性與打包優化 (EXE 重大修復)
-- **EXE 啟動修復**: 
-    - 解決了打包版本缺失 `PIL`, `docx`, `webview`, `flask` 等核心依賴的問題。
-    - 修正了 `tkinter.filedialog` 缺失導致無法彈出檔案選擇對話框的錯誤。
-- **編碼崩潰修復**: 徹底移除程式輸出中的 Emoji，解決在 Windows 中文環境 (`cp950`) 下的 `UnicodeEncodeError` 崩潰問題。
-- **路徑解析優化**: 更新核心邏輯，能自動識別 PyInstaller 的 `_internal` 資料夾結構，確保正確加載 `excel` 與 `screenshot` 腳本。
-- **UI 資源定位**: 修復 `DIST_DIR` 資源路徑，解決啟動後出現「Not Found」的問題。
+## [v3.0.0] - 2026-01-16
+### 🏆 插拔式架構里程碑 (Major Architecture Milestone)
+- **架構升級**: 本版本正式確立「平台與邏輯分離」架構。未來所有 UI 與腳本更新僅需替換 `_internal` 內的子目錄，無需重新下載 300MB 的主程式或重新打包 EXE。
+- **穩定性修復 (重大)**: 
+    - 解決 EXE 打包後的 `ModuleNotFoundError` (PIL, docx, webview 等)。
+    - 修復檔案選擇對話框缺失 `tkinter.filedialog` 的報錯問題。
+- **解決編碼崩潰**: 徹底移除程式輸出中的 Emoji，防止在 Windows `cp950` 環境下產生 `UnicodeEncodeError` 閃退。
+- **路徑智能解析**: 核心邏輯現在能自動適應 PyInstaller 的 `_internal` 資源目錄結構。
+- **UI 修正**: 解決啟動後出現的 "Not Found" 資源定位錯誤。
+
 ### 🛠️ 功能優化
-- **輸出歸檔邏輯**: 自動為每個來源檔案建立獨立的子資料夾，並修復了資料夾重複嵌套的問題。
-- **UI 列表優化**: 截圖結果列表現在改為「僅顯示 Word 文件」，並優化了狀態輪詢邏輯，解決了介面閃爍問題。
+- **截圖歸檔與防嵌套**: 自動建立獨立子資料夾歸檔結果，並修正了目錄重複嵌套的 Bug。
+- **介面體驗**: 截圖結果列表過濾為「僅顯示 Word 文件」，並修復了輪詢導致的介面閃爍問題。
 
 ## [v2.4.0] - 2026-01-15
 ### ✨ 插拔式介面架構 (Pluggable UI)
