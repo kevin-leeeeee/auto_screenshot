@@ -122,8 +122,6 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                 {/* Footer */}
                 <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-blue-600 text-sm">rocket_launch</span>
-                        <span className="text-[11px] font-black italic dark:text-white">AF V2.1.0</span>
                     </div>
                     <button
                         onClick={onClose}
