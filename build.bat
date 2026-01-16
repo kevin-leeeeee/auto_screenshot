@@ -1,190 +1,83 @@
 @echo off
-setlocal enabledelayedexpansion
-chcp 65001 >nul
-
-REM ==========================================
-REM   AutoFlow 自動打包與發布整理腳本 (v2.2.0)
-REM   優化版 - 含環境檢查與錯誤處理
-REM ==========================================
-
-REM ========== 讀取版本號 ==========
-if not exist "version.txt" (
-    echo [錯誤] 找不到 version.txt
-    pause
-    exit /b 1
-)
-set /p VERSION=<version.txt
-set APP_NAME=AutoFlow_Control_Center_v%VERSION%
-set DIST_PATH=dist\%APP_NAME%
-set START_TIME=%TIME%
-
-echo.
-echo ╔════════════════════════════════════════════════════════════╗
-echo ║  AutoFlow Control Center - 自動建置腳本 v%VERSION%            ║
-echo ╚════════════════════════════════════════════════════════════╝
+chcp 65001
+echo ===================================================
+echo   AutoFlow Build Script (Minimalist)
+echo ===================================================
 echo.
 
-REM ========== 環境檢查 ==========
-echo [0/6] 檢查建置環境...
-echo.
+echo [0/5] Cleaning up old builds...
+if exist build rd /s /q build
+if exist dist rd /s /q dist
+if exist AutoFlow.spec del /q AutoFlow.spec
 
-REM 檢查 Node.js
-where node >nul 2>&1
-if %ERRORLEVEL% NEQ 0 (
-    echo [錯誤] 找不到 Node.js，請先安裝 Node.js
-    echo 下載位置: https://nodejs.org/
-    pause
-    exit /b 1
+echo [1/5] Running PyInstaller...
+pyinstaller --noconfirm --onedir --windowed --name "AutoFlow" ^
+    --add-data "autoflow/dist;ui" ^
+    --add-data "excel;excel" ^
+    --add-data "screenshot;screenshot" ^
+    --hidden-import webview --hidden-import flask --hidden-import requests ^
+    --hidden-import PIL --hidden-import PIL.Image --hidden-import PIL.ImageStat --hidden-import PIL.ImageGrab --hidden-import PIL.ImageChops ^
+    --hidden-import pyautogui --hidden-import docx --hidden-import pygetwindow ^
+    --hidden-import clr_loader --hidden-import clr ^
+    --hidden-import tkinter --hidden-import tkinter.filedialog ^
+    --exclude-module core ^
+    --exclude-module pandas --exclude-module numpy --exclude-module matplotlib --exclude-module scipy ^
+    --exclude-module sphinx --exclude-module docutils --exclude-module IPython ^
+    --exclude-module PyQt5 --exclude-module PyQt5.QtWebEngine --exclude-module PyQt5.QtWebEngineWidgets --exclude-module PyQt5.QtWebEngineCore ^
+    --exclude-module PyQt5.QtNetwork --exclude-module PyQt5.QtNetworkAuth --exclude-module PyQt5.QtQuick ^
+    --exclude-module PyQt5.QtQml --exclude-module PyQt5.QtQuickWidgets --exclude-module PyQt5.QtSql ^
+    --exclude-module PyQt5.QtTest --exclude-module PyQt5.QtXml --exclude-module PyQt5.QtBluetooth ^
+    --exclude-module PyQt5.QtLocation --exclude-module PyQt5.QtMultimedia --exclude-module PyQt5.QtNfc ^
+    --exclude-module PyQt5.QtPositioning --exclude-module PyQt5.QtSensors --exclude-module PyQt5.QtSerialPort ^
+    --exclude-module PyQt5.QtSvg --exclude-module PyQt5.QtWebChannel --exclude-module PyQt5.QtWebSockets ^
+    --exclude-module PySide2 --exclude-module PySide6 ^
+    --icon "assets/icon.ico" run.py
+
+if errorlevel 1 (
+    echo [ERROR] PyInstaller failed! Retrying without icon...
+    pyinstaller --noconfirm --onedir --windowed --name "AutoFlow" ^
+        --add-data "autoflow/dist;ui" ^
+        --add-data "excel;excel" ^
+        --add-data "screenshot;screenshot" ^
+        --hidden-import webview --hidden-import flask --hidden-import requests ^
+        --hidden-import PIL --hidden-import PIL.Image --hidden-import PIL.ImageStat --hidden-import PIL.ImageGrab --hidden-import PIL.ImageChops ^
+        --hidden-import pyautogui --hidden-import docx --hidden-import pygetwindow ^
+        --hidden-import clr_loader --hidden-import clr ^
+        --hidden-import tkinter --hidden-import tkinter.filedialog ^
+        --exclude-module core ^
+        --exclude-module pandas --exclude-module numpy --exclude-module matplotlib --exclude-module scipy ^
+        --exclude-module sphinx --exclude-module docutils --exclude-module IPython ^
+        --exclude-module PyQt5 --exclude-module PyQt5.QtWebEngine --exclude-module PyQt5.QtWebEngineWidgets --exclude-module PyQt5.QtWebEngineCore ^
+        --exclude-module PyQt5.QtNetwork --exclude-module PyQt5.QtNetworkAuth --exclude-module PyQt5.QtQuick ^
+        --exclude-module PyQt5.QtQml --exclude-module PyQt5.QtQuickWidgets --exclude-module PyQt5.QtSql ^
+        --exclude-module PyQt5.QtTest --exclude-module PyQt5.QtXml --exclude-module PyQt5.QtBluetooth ^
+        --exclude-module PyQt5.QtLocation --exclude-module PyQt5.QtMultimedia --exclude-module PyQt5.QtNfc ^
+        --exclude-module PyQt5.QtPositioning --exclude-module PyQt5.QtSensors --exclude-module PyQt5.QtSerialPort ^
+        --exclude-module PyQt5.QtSvg --exclude-module PyQt5.QtWebChannel --exclude-module PyQt5.QtWebSockets ^
+        --exclude-module PySide2 --exclude-module PySide6 ^
+        run.py
 )
 
-REM 檢查 Python
-where python >nul 2>&1
-if %ERRORLEVEL% NEQ 0 (
-    echo [錯誤] 找不到 Python，請先安裝 Python 3.12+
-    pause
-    exit /b 1
-)
-
-REM 檢查 PyInstaller
-python -c "import PyInstaller" >nul 2>&1
-if %ERRORLEVEL% NEQ 0 (
-    echo [錯誤] 找不到 PyInstaller，請執行: pip install pyinstaller
-    pause
-    exit /b 1
-)
-
-REM 檢查前端目錄
-if not exist "autoflow" (
-    echo [錯誤] 找不到前端目錄 autoflow
-    pause
-    exit /b 1
-)
-
-echo ✓ Node.js 已安裝
-echo ✓ Python 已安裝
-echo ✓ PyInstaller 已安裝
-echo ✓ 前端目錄存在
-echo.
-
-REM ========== 前端建置 ==========
-echo [1/6] 建置 React 前端...
-echo.
-
-cd autoflow
-if not exist "package.json" (
-    echo [錯誤] 找不到 package.json
-    cd ..
+if errorlevel 1 (
+    echo [ERROR] PyInstaller failed again. Exiting.
     pause
     exit /b 1
 )
 
-call npm run build
-if %ERRORLEVEL% NEQ 0 (
-    echo [錯誤] 前端建置失敗
-    cd ..
-    pause
-    exit /b 1
-)
-cd ..
+echo [2/5] Copying Core Logic...
+xcopy /E /I /Y "core" "dist\AutoFlow\core"
+copy /Y "version.txt" "dist\AutoFlow\"
 
-echo ✓ 前端建置完成
-echo.
+echo [3/5] Creating UI Zip...
+powershell -Command "Compress-Archive -Path 'autoflow\dist\*' -DestinationPath 'dist\ui.zip' -Force"
 
-REM ========== 清理舊建置 ==========
-echo [2/6] 清理舊建置檔案...
-echo.
-
-if exist "build" (
-    rmdir /s /q "build"
-    echo ✓ 已清除 build 目錄
-)
-
-if exist "%DIST_PATH%" (
-    rmdir /s /q "%DIST_PATH%"
-    echo ✓ 已清除舊的 dist 目錄
-)
+echo [4/5] Creating Full Release Zip...
+powershell -Command "Compress-Archive -Path 'dist\AutoFlow' -DestinationPath 'dist\AutoFlow_v2.5.1_Full.zip' -Force"
 
 echo.
-
-REM ========== PyInstaller 打包 ==========
-echo [3/6] 執行 PyInstaller 打包 (One-Directory 模式)...
+echo ===================================================
+echo   Build Complete! 
+echo   File: dist\AutoFlow_v2.5.1_Full.zip
+echo ===================================================
 echo.
-
-call pyinstaller --clean build.spec --noconfirm
-if %ERRORLEVEL% NEQ 0 (
-    echo [錯誤] PyInstaller 打包失敗
-    pause
-    exit /b 1
-)
-
-echo ✓ PyInstaller 打包完成
-echo.
-
-REM ========== 複製外部腳本 ==========
-echo [4/6] 整理外部腳本 (插拔式架構)...
-echo.
-
-REM 建立目錄
-if not exist "%DIST_PATH%\excel_轉換" mkdir "%DIST_PATH%\excel_轉換"
-if not exist "%DIST_PATH%\截圖腳本" mkdir "%DIST_PATH%\截圖腳本"
-if not exist "%DIST_PATH%\ui" mkdir "%DIST_PATH%\ui"
-
-REM 複製前端介面 (插拔式 UI)
-echo 複製前端介面至 ui 目錄...
-xcopy /E /I /Y /Q "autoflow\dist\*.*" "%DIST_PATH%\ui\" >nul
-
-REM 複製 Excel 轉換腳本 (排除不必要的檔案)
-echo 複製 excel_轉換...
-xcopy /E /I /Y /Q "excel_轉換\*.py" "%DIST_PATH%\excel_轉換\" >nul
-xcopy /E /I /Y /Q "excel_轉換\README.md" "%DIST_PATH%\excel_轉換\" >nul 2>&1
-if exist "excel_轉換\測試資料.xlsx" (
-    copy /Y "excel_轉換\測試資料.xlsx" "%DIST_PATH%\excel_轉換\" >nul
-)
-
-REM 複製截圖腳本 (排除不必要的檔案)
-echo 複製 截圖腳本...
-xcopy /E /I /Y /Q "screenshot_script\*.py" "%DIST_PATH%\截圖腳本\" >nul
-xcopy /E /I /Y /Q "screenshot_script\*.json" "%DIST_PATH%\截圖腳本\" >nul 2>&1
-xcopy /E /I /Y /Q "screenshot_script\README.md" "%DIST_PATH%\截圖腳本\" >nul 2>&1
-
-echo ✓ 外部腳本複製完成
-echo.
-
-REM ========== 建立壓縮檔 ==========
-echo [5/6] 建立發布壓縮包...
-echo.
-
-if exist "dist\%APP_NAME%_Full.zip" (
-    del /f /q "dist\%APP_NAME%_Full.zip"
-)
-
-REM powershell -Command "Compress-Archive -Path '%DIST_PATH%' -DestinationPath 'dist\%APP_NAME%_Full.zip' -CompressionLevel Optimal -Force"
-if %ERRORLEVEL% NEQ 0 (
-    echo [警告] 壓縮檔建立失敗，但程式檔案已準備完成
-) else (
-    echo ✓ 壓縮檔建立完成
-)
-echo.
-
-REM ========== 計算建置時間 ==========
-echo [6/6] 建置完成！
-echo.
-
-REM 計算檔案大小
-for %%A in ("dist\%APP_NAME%_Full.zip") do set SIZE=%%~zA
-set /a SIZE_MB=!SIZE! / 1048576
-
-echo ╔════════════════════════════════════════════════════════════╗
-echo ║  建置成功！                                                ║
-echo ╚════════════════════════════════════════════════════════════╝
-echo.
-echo 📦 發布包位置: dist\%APP_NAME%_Full.zip
-echo 📊 壓縮包大小: !SIZE_MB! MB
-echo 📁 程式目錄: %DIST_PATH%\
-echo.
-echo 🎯 下一步:
-echo    1. 測試執行檔: cd %DIST_PATH% ^&^& %APP_NAME%.exe
-echo    2. 上傳到 GitHub Releases
-echo.
-
 pause

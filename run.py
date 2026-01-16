@@ -12,14 +12,34 @@ else:
 
 sys.path.append(str(BASE_DIR))
 
+# Dummy imports to force PyInstaller to bundle them
+if False:
+    import webview
+    import flask
+    import requests
+    import PIL
+    import pyautogui
+    import openpyxl
+    import docx
+    import shutil
+    import zipfile
+    import importlib
+    import logging
+    import datetime
+    import ctypes
+
 # Launcher Logic
 def launch():
+    # VERY IMPORTANT for Windows Frozen Apps
+    import multiprocessing
+    multiprocessing.freeze_support()
+    
     print(f"🚀 Starting AutoFlow Launcher from {BASE_DIR}")
     try:
         from core.main import main
         main()
     except ImportError as e:
-        print(f"❌ Failed to load core module: {e}")
+        print(f"[ERROR] Failed to load core module: {e}")
         # Simplistic error handling for now (console)
         # In a GUI app, we might want a raw tkinter msgbox here if webview fails
         try:
@@ -33,7 +53,7 @@ def launch():
             pass
         input("Press Enter to exit...")
     except Exception as e:
-        print(f"❌ Fatal Error: {e}")
+        print(f"[FATAL ERROR] {e}")
         import traceback
         traceback.print_exc()
         input("Press Enter to exit...")

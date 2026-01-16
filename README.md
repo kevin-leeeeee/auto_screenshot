@@ -1,4 +1,4 @@
-# AutoFlow Control Center (v2.2.0)
+# AutoFlow Control Center (v2.5.1)
 
 這是一個全功能的自動化工作控制中心，整合了 `Excel 轉檔` 與 `網頁自動截圖` 兩大核心功能，並提供現代化的操作介面與任務管理系統。
 
@@ -28,17 +28,18 @@
 
 請前往 [Releases](https://github.com/kevin-leeeeee/auto_screenshot/releases) 下載最新版本的壓縮包。
 
-### 建議下載版本：`AutoFlow_Control_Center_v2.2.0_Full.zip`
+### 建議下載版本：`AutoFlow_v2.5.1_Full.zip`
 
 1. 下載並解壓縮。
 2. **目錄結構確認**: 請確保您的資料夾結構如下 (不可隨意改名):
    ```text
-   AutoFlow_Control_Center_v2.2.0/
-   ├── AutoFlow_Control_Center_v2.2.0.exe  (主程式)
-   ├── excel_轉換/                         (Excel 處理腳本)
-   └── 截圖腳本/                           (自動截圖腳本)
+   AutoFlow/
+   ├── AutoFlow.exe          (主程式)
+   ├── core/                 (核心代碼，支援熱更新)
+   ├── _internal/            (Python 依賴與腳本資源)
+   └── version.txt           (版本號)
    ```
-3. 執行 `AutoFlow_Control_Center_v2.2.0.exe`。
+3. 執行 `AutoFlow.exe`。
 
 ---
 

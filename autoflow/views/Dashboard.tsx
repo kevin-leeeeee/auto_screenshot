@@ -155,12 +155,40 @@ const Dashboard: React.FC<DashboardProps> = ({
         // @ts-ignore
         if (window.pywebview && window.pywebview.api) {
           // @ts-ignore
+          // @ts-ignore
           const status = await window.pywebview.api.get_task_status();
-          if (status) setScreenshotStatus(status);
+          if (status) {
+            setScreenshotStatus(prev => {
+              if (JSON.stringify(prev) !== JSON.stringify(status)) return status;
+              return prev;
+            });
+          }
 
           // @ts-ignore
           const state = await window.pywebview.api.get_app_state();
-          if (state) setAppState(state);
+          if (state) {
+            let latestResults = undefined;
+            try {
+              // @ts-ignore
+              const r = await window.pywebview.api.get_latest_screenshot_results();
+              if (r && r.results) latestResults = r.results;
+            } catch (e) { }
+
+            setAppState(prev => {
+              // If we got new results, use them. Otherwise keep previous results (or undefined if never set)
+              // Actually, if we got results (even empty list), we should use it.
+              // Logic: get_app_state doesn't include latest_screenshot_results.
+              const combined = {
+                ...state,
+                latest_screenshot_results: latestResults !== undefined ? latestResults : (prev?.latest_screenshot_results || [])
+              };
+
+              if (JSON.stringify(prev) !== JSON.stringify(combined)) {
+                return combined;
+              }
+              return prev;
+            });
+          }
         } else {
           // Fallback for dev mode
           const res = await fetch('http://localhost:8000/api/status');

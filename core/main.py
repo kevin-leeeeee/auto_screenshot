@@ -46,17 +46,23 @@ def setup_paths(base_path=None):
     elif getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
         # Path to internal dist files (PyInstaller magic)
         RESOURCE_DIR = Path(sys._MEIPASS)
-        DIST_DIR = RESOURCE_DIR / "autoflow" / "dist"
+        DIST_DIR = RESOURCE_DIR / "ui"
     else:
         # Fallback for dev mode
         DIST_DIR = BASE_DIR / "autoflow" / "dist"
 
-    EXCEL_DIR = BASE_DIR / "excel_轉換"
-    # Prioritize 'screenshot_script' for source mode, '截圖腳本' for frozen mode
-    if (BASE_DIR / "screenshot_script").exists():
-        SCREENSHOT_DIR = BASE_DIR / "screenshot_script"
+    EXCEL_DIR = BASE_DIR / "excel"
+    # Unified frozen logic
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        bundle_dir = Path(sys._MEIPASS)
+        EXCEL_DIR = bundle_dir / "excel"
+        SCREENSHOT_DIR = bundle_dir / "screenshot"
     else:
-        SCREENSHOT_DIR = BASE_DIR / "截圖腳本"
+        EXCEL_DIR = BASE_DIR / "excel"
+        if (BASE_DIR / "screenshot").exists():
+            SCREENSHOT_DIR = BASE_DIR / "screenshot"
+        else:
+             SCREENSHOT_DIR = BASE_DIR / "screenshot"
         
     # Validation
     validate_external_scripts()
@@ -83,11 +89,11 @@ def validate_external_scripts():
     
     if errors:
         error_msg = "\n".join([
-            "❌ 外部腳本載入失敗:",
+            "[ERROR] 外部腳本載入失敗:",
             "",
-            *[f"  • {err}" for err in errors],
+            *[f"  - {err}" for err in errors],
             "",
-            "💡 解決方案:",
+            "[INFO] 解決方案:",
             "  1. 確認程式目錄結構完整",
             "  2. 重新解壓縮完整的發布包",
             f"  3. 確認以下目錄存在:",
@@ -777,6 +783,13 @@ class Bridge:
             "stats": data.get("stats", {}),
             "version": version
         }
+    
+    def get_latest_screenshot_results(self):
+        """Returns latest screenshot output results (including Word documents)"""
+        return {
+            "results": self._latest_screenshot_results,
+            "status": "success"
+        }
 
     # Screenshot Task Integration
     def start_screenshot(self, config):
@@ -804,7 +817,7 @@ class Bridge:
     def _run_screenshot_task(self, config):
         # We need to bridge the config from frontend to what 'main.py' expects
         # main.py expects args or interactive input. run_from_api was designed for this.
-        import 截圖腳本.main as capture_app
+        import screenshot.main as capture_app
         
         input_files = []
         if config.get("inputFiles"):
@@ -864,24 +877,30 @@ class Bridge:
         try:
             start_time = time.time()
             results = capture_app.run_from_api(
-                api_config, 
+                should_stop_callback=lambda: self._screenshot_stop_signal,
+                config_overrides=api_config,
                 progress_callback=progress_callback,
-                suppress_popups=True  # Ensure no per-file popups
+                suppress_popups=True
             )
             
             # Enhance results with open folder path
             enhanced_results = []
-            for r in results.get("results", []):
-                # Calculate output folder path for this file
-                # The logic should match get_default_output_dir or capture_app's return
-                # capture_app currently returns 'output_subdir' name
-                folder_path = ""
-                if r.get("output_subdir"):
-                    folder_path = os.path.abspath(os.path.join(str(SCREENSHOT_DIR), r.get("output_subdir")))
-                
+            # Enhance results with open folder path
+            enhanced_results = []
+            
+            # Note: We skip adding individual image files to UI results as user requested only DOCX
+            # for r in results.get("results", []):
+            #     ... logic removed ...
+            
+            # Add Word documents to results
+            for word_path in results.get("word_documents", []):
                 enhanced_results.append({
-                    **r,
-                    "folder": folder_path
+                    "url": "",
+                    "status": "word_document",
+                    "output": word_path,
+                    "path": word_path,
+                    "name": os.path.basename(word_path),
+                    "folder": os.path.dirname(word_path)
                 })
             
             self._latest_screenshot_results = enhanced_results
@@ -960,105 +979,26 @@ def main():
         global CURRENT_VERSION
         CURRENT_VERSION = f"v{version_file.read_text().strip()}"
     
-    window = webview.create_window(
-        f"AutoFlow Control Center {CURRENT_VERSION}",
-        url=f"file:///{DIST_DIR}/index.html", # Direct file easier than spawning Flask for specialized builds?
-        # Actually React routers often prefer a server. 
-        # But 'vite build' produces static files. 
-        # The previous run_app used Flask. Let's stick to Flask for safety on routing.
-        js_api=None, # Will set instance later? No, create_window needs instance.
-        width=1200,
-        height=800,
-        resizable=True,
-        min_size=(1024, 768)
-    )
-    
-    # We need to link window to bridge
-    bridge = Bridge(window)
-    window._js_api = bridge # PyWebView internals, or passing to create_window is better
-    
-    # Re-create window with API
-    # Since we can't update js_api easily after creation in some versions,
-    # let's instantiate Bridge with a placeholder or 'None', set window later?
-    # Bridge.__init__ takes window immediately.
-    # Circular dependency?
-    # Window needs API. API needs Window (for dialogs).
-    # Solution: Two-step init.
-    
-    # Correct pattern:
-    class BridgeWrapper(Bridge):
-         pass
-         
-    bridge = Bridge(None) # Init with None
-    
-    window = webview.create_window(
-        f"AutoFlow Control Center {CURRENT_VERSION}",
-        url=str(DIST_DIR / "index.html"), # Try direct file first to avoid Flask complexity if not needed
-        # User's previous code was cleaner? 
-        # Previous code used: bridge = Bridge(), window = webview.create_window(..., js_api=bridge), bridge._window = window
-        js_api=bridge,
-        width=1200,
-        height=800,
-        resizable=True,
-        min_size=(1024, 768)
-    )
-    bridge._window = window # Set it now
-    
-    # Start webview
-    # webview.start(debug=True) 
-    # But wait, React routing with file:// protocol often fails on history/paths.
-    # Using a local server is safer for React apps.
-    
-    def run_flask():
-        app = Flask(__name__, static_folder=str(DIST_DIR), static_url_path='')
-        @app.route('/')
-        def index():
-            return send_from_directory(str(DIST_DIR), 'index.html')
-        @app.route('/<path:path>')
-        def static_proxy(path):
-            return send_from_directory(str(DIST_DIR), path)
-        app.run(port=8000, threaded=True) # use 8000 to avoid conflicts
-        
-    t = threading.Thread(target=run_flask, daemon=True)
-    t.start()
-    
-    # Update window URL to localhost
-    # But create_window was already called?
-    # We can use window.load_url() after start? No, start blocks.
-    # We can pass http url to create_window.
-    
-    # Let's recreate the window object correctly before start
-    # Since create_window adds it to a list, we can't easily undo.
-    # The previous code imported run_app and ran it?
-    # Previous code:
-    # app = Flask(...)
-    # ...
-    # if __name__ == '__main__':
-    #     t = threading.Thread(target=app.run)
-    #     t.start()
-    #     webview.create_window(..., url='http://127.0.0.1:5000')
-    #     webview.start()
-    
-    # Let's replicate EXACTLY that pattern but wrapped in function.
-    
-    # Since we are inside main(), we can do:
+    # Setup Flask server to serve the React frontend
     app = Flask(__name__, static_folder=str(DIST_DIR), static_url_path='')
+    
     @app.route('/')
     def index():
         return send_from_directory(str(DIST_DIR), 'index.html')
+    
     @app.route('/<path:path>')
     def static_proxy(path):
         return send_from_directory(str(DIST_DIR), path)
         
-    # Find a free port or use fixed
     port = 5000
-    
+    # Start Flask in a background thread
     t = threading.Thread(target=lambda: app.run(port=port, threaded=True), daemon=True)
     t.start()
     
-    # Wait a bit for server
+    # Give the server a moment to start
     time.sleep(0.5)
     
+    # Create Bridge and link to Window
     bridge = Bridge(None)
     window = webview.create_window(
         f"AutoFlow Control Center {CURRENT_VERSION}",
@@ -1071,7 +1011,8 @@ def main():
     )
     bridge._window = window
     
-    webview.start(debug=True)
+    # Start webview in production mode (debug=False)
+    webview.start(debug=False)
 
 if __name__ == "__main__":
     main()

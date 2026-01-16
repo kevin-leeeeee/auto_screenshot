@@ -1,12 +1,180 @@
 {
     "stats": {
         "total_conversions": 4,
-        "total_tasks": 18,
-        "success_rate": "100%",
-        "time_saved": "3m 31s",
-        "total_seconds": 211.49999999999997
+        "total_tasks": 39,
+        "success_rate": "97%",
+        "time_saved": "9m 39s",
+        "total_seconds": 579.9
     },
     "history": [
+        {
+            "id": "#AF-3BAA7",
+            "name": "自動截圖任務",
+            "status": "Completed",
+            "duration": "26.4s",
+            "time": "10:45 AM",
+            "message": "完成 7 個檔案"
+        },
+        {
+            "id": "#AF-12DC9",
+            "name": "自動截圖任務",
+            "status": "Completed",
+            "duration": "26.1s",
+            "time": "10:40 AM",
+            "message": "完成 7 個檔案"
+        },
+        {
+            "id": "#AF-30ECC",
+            "name": "自動截圖任務",
+            "status": "Completed",
+            "duration": "26.1s",
+            "time": "10:35 AM",
+            "message": "完成 7 個檔案"
+        },
+        {
+            "id": "#AF-477B3",
+            "name": "自動截圖任務",
+            "status": "Completed",
+            "duration": "25.9s",
+            "time": "10:31 AM",
+            "message": "完成 7 個檔案"
+        },
+        {
+            "id": "#AF-D5EA5",
+            "name": "自動截圖任務",
+            "status": "Completed",
+            "duration": "26.0s",
+            "time": "10:13 AM",
+            "message": "完成 7 個檔案"
+        },
+        {
+            "id": "#AF-DFEA6",
+            "name": "自動截圖任務",
+            "status": "Completed",
+            "duration": "15.7s",
+            "time": "10:10 AM",
+            "message": "完成 4 個檔案"
+        },
+        {
+            "id": "#AF-7FD70",
+            "name": "自動截圖任務",
+            "status": "Completed",
+            "duration": "25.8s",
+            "time": "12:27 AM",
+            "message": "完成 7 個檔案"
+        },
+        {
+            "id": "#AF-C3A20",
+            "name": "自動截圖任務",
+            "status": "Completed",
+            "duration": "14.8s",
+            "time": "12:25 AM",
+            "message": "完成 4 個檔案"
+        },
+        {
+            "id": "#AF-074A8",
+            "name": "自動截圖任務",
+            "status": "Completed",
+            "duration": "27.0s",
+            "time": "12:24 AM",
+            "message": "完成 7 個檔案"
+        },
+        {
+            "id": "#AF-AB4DB",
+            "name": "自動截圖任務",
+            "status": "Completed",
+            "duration": "26.2s",
+            "time": "11:57 PM",
+            "message": "完成 7 個檔案"
+        },
+        {
+            "id": "#AF-D6844",
+            "name": "自動截圖任務",
+            "status": "Completed",
+            "duration": "11.3s",
+            "time": "11:55 PM",
+            "message": "完成 3 個檔案"
+        },
+        {
+            "id": "#AF-28D5D",
+            "name": "自動截圖任務",
+            "status": "Completed",
+            "duration": "26.0s",
+            "time": "11:54 PM",
+            "message": "完成 7 個檔案"
+        },
+        {
+            "id": "#AF-41693",
+            "name": "自動截圖任務",
+            "status": "Completed",
+            "duration": "26.0s",
+            "time": "11:47 PM",
+            "message": "完成 7 個檔案"
+        },
+        {
+            "id": "#AF-9E1EA",
+            "name": "自動截圖任務",
+            "status": "Completed",
+            "duration": "3.8s",
+            "time": "11:45 PM",
+            "message": "完成 1 個檔案"
+        },
+        {
+            "id": "#AF-8E5BF",
+            "name": "自動截圖任務",
+            "status": "Completed",
+            "duration": "25.5s",
+            "time": "11:44 PM",
+            "message": "完成 7 個檔案"
+        },
+        {
+            "id": "#AF-9A4F0",
+            "name": "自動截圖任務",
+            "status": "Completed",
+            "duration": "11.1s",
+            "time": "11:41 PM",
+            "message": "完成 3 個檔案"
+        },
+        {
+            "id": "#AF-41354",
+            "name": "自動截圖任務",
+            "status": "Completed",
+            "duration": "11.2s",
+            "time": "11:41 PM",
+            "message": "完成 3 個檔案"
+        },
+        {
+            "id": "#AF-C1360",
+            "name": "自動截圖任務",
+            "status": "Completed",
+            "duration": "9.7s",
+            "time": "11:41 PM",
+            "message": "完成 2 個檔案"
+        },
+        {
+            "id": "#AF-22CE7",
+            "name": "自動截圖任務",
+            "status": "Completed",
+            "duration": "2.1s",
+            "time": "11:38 PM",
+            "message": "完成 0 個檔案"
+        },
+        {
+            "id": "#AF-CEB0A",
+            "name": "自動截圖任務",
+            "status": "Error",
+            "duration": "--",
+            "time": "11:37 PM",
+            "message": "找不到檔案: c:\\Users\\HP_600_G1_2ND\\Desktop\\工作自動化\\excel_轉換\\output\\2026-01-15_21-51-05\\1150050010.txt"
+        },
+        {
+            "id": "#AF-F2F9D",
+            "name": "自動截圖任務",
+            "status": "Completed",
+            "duration": "1.7s",
+            "time": "11:35 PM",
+            "message": "完成 0 個檔案"
+        },
         {
             "id": "#AF-76E58",
             "name": "任務 (2/2): 1150050011.txt",
@@ -231,14 +399,14 @@
             ],
             "inputFiles": [
                 {
-                    "path": "c:\\Users\\HP_600_G1_2ND\\Desktop\\工作自動化\\excel_轉換\\output\\2026-01-15_21-51-05\\1150050010.txt",
-                    "name": "1150050010.txt",
-                    "urlCount": 3
-                },
-                {
-                    "path": "c:\\Users\\HP_600_G1_2ND\\Desktop\\工作自動化\\excel_轉換\\output\\2026-01-15_21-51-05\\1150050011.txt",
+                    "path": "C:\\Users\\HP_600_G1_2ND\\Desktop\\工作自動化\\excel\\output\\2026-01-15_21-51-05\\1150050011.txt",
                     "name": "1150050011.txt",
                     "urlCount": 4
+                },
+                {
+                    "path": "C:\\Users\\HP_600_G1_2ND\\Desktop\\工作自動化\\excel\\output\\2026-01-15_21-51-05\\1150050010.txt",
+                    "name": "1150050010.txt",
+                    "urlCount": 3
                 }
             ]
         },

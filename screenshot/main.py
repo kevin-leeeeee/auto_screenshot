@@ -300,41 +300,60 @@ def capture_image(cfg: RunConfig, outpath: Path) -> tuple[object | None, bool]:
         return None, False
 
 
-def run_capture(cfg: RunConfig, external_stop_callback=None, progress_callback=None, use_overlay=True, suppress_popups=False) -> bool:
-    """
-    主要執行流程。
-    Returns: bool (End execution request? True=Stop completely, False=Normal finish)
-    Note: Original logic returned True to indicate "back to UI" or "Stop"?
-    Original: returns True if "needs to return to UI to re-configure".
-    Let's check the caller. 
-    If returns True, loop `continue` (back to UI). 
-    If returns False, loop `return` (exit program).
-    Wait, original `run_capture` returned `bool`: `stop_requested`.
-    If stopped manually -> return True (stop requested, back to UI to possibly restart or exit?)
-    Actually lines 541: `back_to_ui = run_capture(...)`.
-    The logic was a bit confusing. Let's stick to:
-    Returns True if we should allow the user to go back to UI (e.g. stopped manually),
-    Returns False if we are done completely.
-    """
+def run_capture(cfg: RunConfig, external_stop_callback=None, progress_callback=None, use_overlay=True, suppress_popups=False, input_files=None) -> dict:
+    """ 主要執行流程。 """
     
+    # Auto-correct output_dir if it points to a specific screenshot folder (prevents nesting)
+    if cfg.output_dir.name.startswith("screenshots_"):
+        logger.info(f"Detected sub-folder in output path ({cfg.output_dir.name}), moving up one level to prevent nesting.")
+        cfg.output_dir = cfg.output_dir.parent
+        
     cfg.output_dir.mkdir(parents=True, exist_ok=True)
     
-    # Setup Word
-    word_doc = None
-    word_path_final = None
+    # Aggregate URLs and track source files
+    urls = []
+    url_to_source_file = {}  # Map URL to its source file for Word generation
+    
+    if input_files:
+        for f in input_files:
+            file_urls = load_urls(Path(f))
+            urls.extend(file_urls)
+            # Track which file each URL came from
+            for url_tuple in file_urls:
+                url_to_source_file[url_tuple[0]] = Path(f)
+    else:
+        urls = load_urls(cfg.urls_file)
+        for url_tuple in urls:
+            url_to_source_file[url_tuple[0]] = cfg.urls_file
+        
+    if not urls:
+        raise RuntimeError(f"沒有網址可供處理,請檢查輸入內容。")
+
+    # Tracking results for API
+    run_results = {
+        "processed": 0,
+        "errors": [],
+        "results": [],
+        "back_to_ui": False,
+        "word_documents": []  # Track all generated Word documents
+    }
+    
+    # Setup Word documents - one per source file
+    word_docs = {}  # Map source file path to (Document, final_path)
     if cfg.word_enabled:
         if Document is None:
             logger.info("Word export requires python-docx; skipping.")
         else:
-            word_path_final = new_word_path(cfg.output_dir, cfg.urls_file, cfg.word_path)
-            word_path_final.parent.mkdir(parents=True, exist_ok=True)
-            word_doc = Document()
-            word_doc.save(word_path_final)
-            print(f"Word file: {word_path_final}")
-
-    urls = load_urls(cfg.urls_file)
-    if not urls:
-        raise RuntimeError(f"{cfg.urls_file} 沒有網址，請檢查檔案內容。")
+            # Create a Word document for each unique source file
+            unique_files = set(url_to_source_file.values())
+            for source_file in unique_files:
+                word_path = new_word_path(cfg.output_dir, source_file, cfg.word_path)
+                word_path.parent.mkdir(parents=True, exist_ok=True)
+                doc = Document()
+                doc.save(word_path)
+                word_docs[source_file] = (doc, word_path)
+                run_results["word_documents"].append(str(word_path))
+                print(f"Word file: {word_path}")
 
     done, done_outputs, done_classes = load_done_data(cfg.done_log)
     total = len(urls)
@@ -392,22 +411,24 @@ def run_capture(cfg: RunConfig, external_stop_callback=None, progress_callback=N
             overlay.set_footer("")
 
         if progress_callback:
-            progress_callback(0, total)
+            progress_callback(0, total, "開始處理")
 
         for idx, (url, note) in enumerate(urls, start=1):
             if progress_callback:
-                progress_callback(processed_this_run, total)
+                progress_callback(processed_this_run, total, f"處理中 ({processed_this_run}/{total})")
 
             if stop_requested["flag"]:
                 flush_done(force=True)
                 overlay.set_footer("已停止")
-                return True
+                run_results["back_to_ui"] = True
+                return run_results
             
             # Check pause at start of loop
             if overlay.wait_if_paused() == "stop":
                 flush_done(force=True)
                 overlay.set_footer("已停止")
-                return True
+                run_results["back_to_ui"] = True
+                return run_results
 
             if cfg.skip_done and url in done:
                 skipped_this_run += 1
@@ -442,7 +463,8 @@ def run_capture(cfg: RunConfig, external_stop_callback=None, progress_callback=N
                 if result == "stop":
                     flush_done(force=True)
                     overlay.set_footer("已停止")
-                    return True
+                    run_results["back_to_ui"] = True
+                    return run_results
                 if result == "skip":
                     overlay.set_footer("手動截圖")
 
@@ -453,7 +475,8 @@ def run_capture(cfg: RunConfig, external_stop_callback=None, progress_callback=N
                 if should_stop:
                     flush_done(force=True)
                     overlay.set_footer("已停止")
-                    return True
+                    run_results["back_to_ui"] = True
+                    return run_results
                 
                 if should_skip_url:
                     # e.g. Product Not Found
@@ -477,7 +500,25 @@ def run_capture(cfg: RunConfig, external_stop_callback=None, progress_callback=N
                 # --- Capture ---
                 ts = datetime.now().strftime("%Y%m%d_%H%M%S")
                 fname = f"{idx:03d}_{ts}_{safe_filename(url)}.png"
-                outpath = cfg.output_dir / fname
+                # Use source file to influence output directory (group by file)
+                if url in url_to_source_file:
+                    src_f = url_to_source_file[url]
+                    f_stem = src_f.stem
+                    sub_d = f"screenshots_{f_stem}"
+                    
+                    if cfg.output_dir.name == sub_d:
+                        target_d = cfg.output_dir
+                    else:
+                        target_d = cfg.output_dir / sub_d
+                        target_d.mkdir(parents=True, exist_ok=True)
+                    outpath = target_d / fname
+                    
+                    # Update output_subdir for API results so folder open works correctly
+                    # Note: We can't easily update run_results here, but 'folder' logic in core/main.py 
+                    # relies on 'output_subdir'. But Wait! output_subdir is derived from outpath.parent.name later.
+                    # Or run_results["results"].append uses outpath.parent.name. Perfect.
+                else:
+                    outpath = cfg.output_dir / fname
 
                 img, used_window = capture_image(cfg, outpath)
                 
@@ -504,13 +545,27 @@ def run_capture(cfg: RunConfig, external_stop_callback=None, progress_callback=N
                     if cfg.record_output:
                         done_outputs[url] = str(outpath)
                     
-                    if word_doc and word_path_final:
-                        try:
-                            append_to_word(word_doc, word_path_final, url, outpath, note)
-                        except Exception as e:
-                            logger.error(f"Word export error: {e}")
+                    # Append to the correct Word document for this URL's source file
+                    if word_docs and url in url_to_source_file:
+                        source_file = url_to_source_file[url]
+                        if source_file in word_docs:
+                            word_doc, word_path = word_docs[source_file]
+                            try:
+                                append_to_word(word_doc, word_path, url, outpath, note)
+                            except Exception as e:
+                                logger.error(f"Word export error: {e}")
                     
                     done_dirty = True
+                    
+                    # Record result
+                    run_results["results"].append({
+                        "url": url,
+                        "status": "success",
+                        "output": str(outpath),
+                        "output_subdir": outpath.parent.name,
+                        "classification": cls
+                    })
+                    run_results["processed"] += 1
                     
                     # Release image from memory
                     del img
@@ -539,7 +594,7 @@ def run_capture(cfg: RunConfig, external_stop_callback=None, progress_callback=N
         logger.info("Run finished.")
         logger.info(f"Completed: {processed_this_run}, Skipped: {skipped_this_run}")
         if progress_callback:
-            progress_callback(processed_this_run, total)
+            progress_callback(processed_this_run, total, "完成")
         overlay.set_footer("完成")
         if not suppress_popups:
             show_info_ui("完成", f"本次完成 {processed_this_run} 個，跳過 {skipped_this_run} 個。")
@@ -548,19 +603,21 @@ def run_capture(cfg: RunConfig, external_stop_callback=None, progress_callback=N
         flush_done(force=True)
         logger.info("\n已中止（Ctrl+C）。已保存 done_log。")
         overlay.set_footer("已停止")
-        return True
+        run_results["back_to_ui"] = True
+        return run_results
     except Exception:
         flush_done(force=True)
         logger.exception("Unexpected error")
         overlay.set_footer("發生錯誤，請查看 Log")
         if cfg.output_dir: 
-            # Check if UI was requested via config or args? 
-            # The overlay is always active here.
              show_error_ui("發生未預期的錯誤，請查看 logs/app.log")
-        return True
+        run_results["back_to_ui"] = True
+        return run_results
     finally:
         flush_done(force=True)
         overlay.close()
+    
+    return run_results
 
 
 def run_from_api(should_stop_callback, config_overrides=None, progress_callback=None, suppress_popups=False):
@@ -569,60 +626,89 @@ def run_from_api(should_stop_callback, config_overrides=None, progress_callback=
     should_stop_callback: a callable that returns True if we should abort.
     config_overrides: dict of configuration options from UI
     """
-    # 1. Resolve URLs file (Must be absolute as we will chdir later)
-    urls_file_raw = config_overrides.get("urls_file") if config_overrides else None
-    if not urls_file_raw:
-        urls_file_raw = DEFAULT_URLS_FILE
+    if config_overrides is None:
+        config_overrides = {}
+
+    # 1. Resolve URLs - Handle multiple files
+    all_urls = []
+    input_files = config_overrides.get("input_files", [])
     
-    urls_file = Path(urls_file_raw).resolve()
+    if not input_files:
+        # Fallback to single urls_file if no list provided
+        urls_file_raw = config_overrides.get("urls_file", DEFAULT_URLS_FILE)
+        input_files = [urls_file_raw]
+    
+    # Actually, load_urls expects a Path. We can merge URLs here or update RunConfig.
+    # RUN_CAPTURE currently expects a cfg.urls_file to exist for Word naming etc.
+    # Let's use the first file as the "primary" for naming.
+    primary_urls_file = Path(input_files[0]).resolve() if input_files else Path(DEFAULT_URLS_FILE).resolve()
     
     # 2. Resolve Output Dir
-    if config_overrides and config_overrides.get("output_dir"):
+    if config_overrides.get("output_dir"):
          output_dir = Path(config_overrides["output_dir"]).resolve()
     else:
-         output_dir = Path(default_output_dir_from_urls(urls_file)).resolve()
+         output_dir = Path(default_output_dir_from_urls(primary_urls_file)).resolve()
     
     # Base config
     cfg = RunConfig(
-        urls_file=urls_file,
+        urls_file=primary_urls_file,
         output_dir=output_dir,
         done_log=Path(DONE_LOG).resolve(),
         warmup_enabled=WARM_UP_ENABLED,
         word_enabled=WORD_ENABLED_DEFAULT,
     )
 
-    # Apply overrides if present
-    if config_overrides:
-        if "autoWordExport" in config_overrides:
-            cfg.word_enabled = config_overrides["autoWordExport"]
-        if "skip_done" in config_overrides:
-            cfg.skip_done = config_overrides["skip_done"]
-        if "text_check_enabled" in config_overrides:
-            cfg.text_check_enabled = config_overrides["text_check_enabled"]
-        if "scroll_capture" in config_overrides:
-            cfg.scroll_capture = config_overrides["scroll_capture"]
-        if "scroll_stitch" in config_overrides:
-            cfg.scroll_stitch = config_overrides["scroll_stitch"]
-        if "crop_top_px" in config_overrides:
-            cfg.crop_top_px = config_overrides["crop_top_px"]
-            cfg.crop_enabled = True # Auto enable crop if px is set
-        if "crop_bottom_px" in config_overrides:
-            cfg.crop_bottom_px = config_overrides["crop_bottom_px"]
-            cfg.crop_enabled = True
-        if "page_wait_range" in config_overrides:
-            cfg.page_wait_range = config_overrides["page_wait_range"]
+    # 3. Handle multiple files by injecting a "merged" urls list if we had a way,
+    # or just calling run_capture with a temporary combined file.
+    # Simpler: Add 'input_files' support to run_capture or just pass them as overrides.
+    # For now, let's keep it simple: run_capture will be modified to accept 'urls' as an optional list.
+    
+    # Apply overrides
+    if "autoWordExport" in config_overrides:
+        cfg.word_enabled = config_overrides["autoWordExport"]
+    if "auto_word_export" in config_overrides:
+        cfg.word_enabled = config_overrides["auto_word_export"]
+    if "skip_done" in config_overrides:
+        cfg.skip_done = config_overrides["skip_done"]
+    if "text_check_enabled" in config_overrides: # Mapping frontend name
+        cfg.text_check_enabled = config_overrides["text_check_enabled"]
+    if "check_text" in config_overrides: # Another mapping
+        cfg.text_check_enabled = config_overrides["check_text"]
+    if "scroll_capture" in config_overrides:
+        cfg.scroll_capture = config_overrides["scroll_capture"]
+    if "scroll_stitch" in config_overrides:
+        cfg.scroll_stitch = config_overrides["scroll_stitch"]
+    if "crop_top" in config_overrides:
+        cfg.crop_top_px = int(config_overrides["crop_top"])
+        cfg.crop_enabled = True
+    if "crop_bottom" in config_overrides:
+        cfg.crop_bottom_px = int(config_overrides["crop_bottom"])
+        cfg.crop_enabled = True
+    if "wait_min" in config_overrides and "wait_max" in config_overrides:
+        cfg.page_wait_range = (int(config_overrides["wait_min"]), int(config_overrides["wait_max"]))
 
-        # Mapping all keywords and pause settings
-        if "captchaKeywords" in config_overrides: cfg.captcha_keywords = config_overrides["captchaKeywords"]
-        if "notFoundKeywords" in config_overrides: cfg.not_found_keywords = config_overrides["notFoundKeywords"]
-        if "bsmiKeywords" in config_overrides: cfg.bsmi_keywords = config_overrides["bsmiKeywords"]
-        if "loginKeywords" in config_overrides: cfg.login_keywords = config_overrides["loginKeywords"]
-        
-        if "custom_categories" in config_overrides: cfg.custom_categories = config_overrides["custom_categories"]
-        if "category_pause" in config_overrides: cfg.category_pause = config_overrides["category_pause"]
+    # Mapping keywords
+    if "captcha_keywords" in config_overrides: cfg.captcha_keywords = config_overrides["captcha_keywords"]
+    if "not_found_keywords" in config_overrides: cfg.not_found_keywords = config_overrides["not_found_keywords"]
+    if "bsmi_keywords" in config_overrides: cfg.bsmi_keywords = config_overrides["bsmi_keywords"]
+    if "login_keywords" in config_overrides: cfg.login_keywords = config_overrides["login_keywords"]
+    if "category_pause" in config_overrides: cfg.category_pause = config_overrides["category_pause"]
 
-    run_capture(cfg, external_stop_callback=should_stop_callback, progress_callback=progress_callback, use_overlay=True, suppress_popups=suppress_popups)
-    return str(cfg.output_dir)
+    # We modify run_capture to take an optional 'input_files' or aggregated urls
+    try:
+        results = run_capture(
+            cfg, 
+            external_stop_callback=should_stop_callback, 
+            progress_callback=progress_callback, 
+            use_overlay=True, 
+            suppress_popups=suppress_popups,
+            input_files=input_files
+        )
+        # Note: run_capture now returns a dict of results (processed, errors, results_list)
+        return results
+    except Exception as e:
+        logger.error(f"Error in run_from_api: {e}")
+        raise
 
 
 

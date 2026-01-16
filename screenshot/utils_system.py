@@ -51,8 +51,21 @@ def new_word_path(output_dir: Path, urls_file: Path, base_path: str | Path | Non
             parent = p
             base = p.name or Path(output_dir).name.strip()
     else:
-        parent = Path(output_dir)
-        base = Path(output_dir).name.strip() or f"screenshots_{Path(urls_file).stem}"
+
+        # Use filename as prefix and subdir
+        file_stem = Path(urls_file).stem
+        dir_name = Path(output_dir).name.strip()
+        sub_dir_name = f"screenshots_{file_stem}"
+        
+        # Avoid double nesting if output_dir is already the subdir
+        if dir_name == sub_dir_name:
+            parent = Path(output_dir)
+            base = sub_dir_name
+        else:
+            parent = Path(output_dir) / sub_dir_name
+            # Ensure subdir exists
+            parent.mkdir(parents=True, exist_ok=True)
+            base = sub_dir_name
 
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     return parent / f"{base}_{ts}.docx"
