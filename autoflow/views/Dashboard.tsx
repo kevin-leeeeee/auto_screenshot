@@ -861,8 +861,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                       <span className="material-symbols-outlined">add_circle</span>
                     </div>
                     <div>
-                      <p className="text-sm font-black dark:text-slate-300">選擇網址檔案</p>
-                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-0.5 uppercase tracking-widest">支援常見試算表與文字檔</p>
+                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-0.5 uppercase tracking-widest">支援純文字檔 (.txt)</p>
                     </div>
                   </div>
                   <div onClick={handleScreenshotFolderSelect} className="flex items-center gap-4 p-5 rounded-2xl border border-dashed border-slate-200 dark:border-white/10 cursor-pointer hover:bg-emerald-500/5 hover:border-emerald-500/50 transition-all group relative overflow-hidden">
