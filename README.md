@@ -9,6 +9,13 @@
 
 ---
 
+## 💻 系統需求 (System Requirements)
+
+- **OS**: Windows 10 / 11 (64-bit)
+- **Runtime**:
+  - 建議安裝 [Visual C++ Redistributable 2015-2022](https://aka.ms/vs/17/release/vc_redist.x64.exe) 以獲得最佳相容性。
+  - 本程式已內建 Python 運行環境，無需額外安裝 Python。
+
 ## 📦 下載與安裝
 
 請前往 [Releases](https://github.com/kevin-leeeeee/auto_screenshot/releases) 下載最新版本的壓縮包。
