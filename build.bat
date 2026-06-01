@@ -5,36 +5,31 @@ echo   AutoFlow Build Script (Minimalist)
 echo ===================================================
 echo.
 
-echo [0/5] Cleaning up old builds...
-if exist build rd /s /q build
-if exist dist rd /s /q dist
-if exist AutoFlow.spec del /q AutoFlow.spec
+echo [0/5] Checking Build Mode...
+set BUILD_MODE=FULL
 
-echo [1/5] Running PyInstaller...
-pyinstaller --noconfirm --onedir --windowed --name "AutoFlow" ^
-    --add-data "autoflow/dist;ui" ^
-    --add-data "excel;excel" ^
-    --add-data "screenshot;screenshot" ^
-    --hidden-import webview --hidden-import flask --hidden-import requests ^
-    --hidden-import PIL --hidden-import PIL.Image --hidden-import PIL.ImageStat --hidden-import PIL.ImageGrab --hidden-import PIL.ImageChops ^
-    --hidden-import pyautogui --hidden-import docx --hidden-import pygetwindow ^
-    --hidden-import clr_loader --hidden-import clr ^
-    --hidden-import tkinter --hidden-import tkinter.filedialog ^
-    --exclude-module core ^
-    --exclude-module pandas --exclude-module numpy --exclude-module matplotlib --exclude-module scipy ^
-    --exclude-module sphinx --exclude-module docutils --exclude-module IPython ^
-    --exclude-module PyQt5 --exclude-module PyQt5.QtWebEngine --exclude-module PyQt5.QtWebEngineWidgets --exclude-module PyQt5.QtWebEngineCore ^
-    --exclude-module PyQt5.QtNetwork --exclude-module PyQt5.QtNetworkAuth --exclude-module PyQt5.QtQuick ^
-    --exclude-module PyQt5.QtQml --exclude-module PyQt5.QtQuickWidgets --exclude-module PyQt5.QtSql ^
-    --exclude-module PyQt5.QtTest --exclude-module PyQt5.QtXml --exclude-module PyQt5.QtBluetooth ^
-    --exclude-module PyQt5.QtLocation --exclude-module PyQt5.QtMultimedia --exclude-module PyQt5.QtNfc ^
-    --exclude-module PyQt5.QtPositioning --exclude-module PyQt5.QtSensors --exclude-module PyQt5.QtSerialPort ^
-    --exclude-module PyQt5.QtSvg --exclude-module PyQt5.QtWebChannel --exclude-module PyQt5.QtWebSockets ^
-    --exclude-module PySide2 --exclude-module PySide6 ^
-    --icon "assets/icon.ico" run.py
+if exist "dist\AutoFlow\AutoFlow.exe" (
+    echo.
+    echo [?] Found existing build in 'dist\AutoFlow'.
+    echo     [Q] Quick Update (Scripts + UI only) - KEEPS STABLE DLLs
+    echo     [F] Full Rebuild (Re-run PyInstaller) - CLEAN SLATE
+    echo.
+    set /p "CHOICE=Select Mode [Q/F] (Default: Q): "
+)
 
-if errorlevel 1 (
-    echo [ERROR] PyInstaller failed! Retrying without icon...
+if /i "%CHOICE%"=="F" set BUILD_MODE=FULL
+if /i "%CHOICE%"=="Q" set BUILD_MODE=QUICK
+if "%CHOICE%"=="" set BUILD_MODE=QUICK
+
+if "%BUILD_MODE%"=="FULL" (
+    echo.
+    echo [1/5] Performing FULL REBUILD...
+    echo       Cleaning up old builds...
+    if exist build rd /s /q build
+    if exist dist rd /s /q dist
+    if exist AutoFlow.spec del /q AutoFlow.spec
+
+    echo       Running PyInstaller...
     pyinstaller --noconfirm --onedir --windowed --name "AutoFlow" ^
         --add-data "autoflow/dist;ui" ^
         --add-data "excel;excel" ^
@@ -55,13 +50,42 @@ if errorlevel 1 (
         --exclude-module PyQt5.QtPositioning --exclude-module PyQt5.QtSensors --exclude-module PyQt5.QtSerialPort ^
         --exclude-module PyQt5.QtSvg --exclude-module PyQt5.QtWebChannel --exclude-module PyQt5.QtWebSockets ^
         --exclude-module PySide2 --exclude-module PySide6 ^
-        run.py
-)
+        --icon "assets/icon.ico" run.py
+    
+    if errorlevel 1 (
+        echo [ERROR] PyInstaller failed! Retrying without icon...
+        pyinstaller --noconfirm --onedir --windowed --name "AutoFlow" ^
+            --add-data "autoflow/dist;ui" ^
+            --add-data "excel;excel" ^
+            --add-data "screenshot;screenshot" ^
+            --hidden-import webview --hidden-import flask --hidden-import requests ^
+            --hidden-import PIL --hidden-import PIL.Image --hidden-import PIL.ImageStat --hidden-import PIL.ImageGrab --hidden-import PIL.ImageChops ^
+            --hidden-import pyautogui --hidden-import docx --hidden-import pygetwindow ^
+            --hidden-import clr_loader --hidden-import clr ^
+            --hidden-import tkinter --hidden-import tkinter.filedialog ^
+            --exclude-module core ^
+            --exclude-module pandas --exclude-module numpy --exclude-module matplotlib --exclude-module scipy ^
+            --exclude-module sphinx --exclude-module docutils --exclude-module IPython ^
+            --exclude-module PyQt5 --exclude-module PyQt5.QtWebEngine --exclude-module PyQt5.QtWebEngineWidgets --exclude-module PyQt5.QtWebEngineCore ^
+            --exclude-module PyQt5.QtNetwork --exclude-module PyQt5.QtNetworkAuth --exclude-module PyQt5.QtQuick ^
+            --exclude-module PyQt5.QtQml --exclude-module PyQt5.QtQuickWidgets --exclude-module PyQt5.QtSql ^
+            --exclude-module PyQt5.QtTest --exclude-module PyQt5.QtXml --exclude-module PyQt5.QtBluetooth ^
+            --exclude-module PyQt5.QtLocation --exclude-module PyQt5.QtMultimedia --exclude-module PyQt5.QtNfc ^
+            --exclude-module PyQt5.QtPositioning --exclude-module PyQt5.QtSensors --exclude-module PyQt5.QtSerialPort ^
+            --exclude-module PyQt5.QtSvg --exclude-module PyQt5.QtWebChannel --exclude-module PyQt5.QtWebSockets ^
+            --exclude-module PySide2 --exclude-module PySide6 ^
+            run.py
+    )
 
-if errorlevel 1 (
-    echo [ERROR] PyInstaller failed again. Exiting.
-    pause
-    exit /b 1
+    if errorlevel 1 (
+        echo [ERROR] PyInstaller failed again. Exiting.
+        pause
+        exit /b 1
+    )
+) else (
+    echo.
+    echo [1/5] Skipping PyInstaller (Quick Update Mode)... 
+    echo       Preserving existing stable binaries...
 )
 
 echo [2/5] Copying Core Logic...

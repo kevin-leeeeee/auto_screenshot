@@ -45,8 +45,8 @@ AutoFlow_Control_Center/
 ├── DEVELOPER.md                    # 開發者指南 (建置與打包說明)
 ├── build.bat                       # 建置腳本 (PyInstaller)
 ├── AutoFlow.spec                   # PyInstaller 配置
-├── excel/                          # 外部 Excel 處理邏輯 (插拔式)
-├── screenshot/                     # 外部網頁自動化邏輯 (插拔式)
+├── excel/                          # 外部 Excel 處理邏輯 (插拔式，內有獨立 README 說明)
+├── screenshot/                     # 外部網頁自動化邏輯 (插拔式，內有獨立 README 說明)
 └── autoflow/                       # 前端 React 源碼
 ```
 

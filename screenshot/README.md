@@ -30,7 +30,7 @@
 - Python 3.10+
 - 依賴套件：
   ```bash
-  pip install pyautogui pillow python-docx pygetwindow playwright
+  pip install pyautogui pillow python-docx pygetwindow
   ```
 
 ### 📦 打包成 .exe
@@ -76,7 +76,7 @@ An automated web screenshot, text analysis, and classification tool based on Pyt
 ### 🛠️ Dependencies
 - Python 3.10+
 - Required Packages:
-  `pyautogui`, `pillow`, `python-docx`, `pygetwindow`, `playwright`
+  `pyautogui`, `pillow`, `python-docx`, `pygetwindow`
 
 ### 📦 Packaging
 Build as a standalone executable using PyInstaller:
